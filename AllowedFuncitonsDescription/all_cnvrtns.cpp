@@ -23,18 +23,18 @@
 #include <arpa/inet.h>
 
 int main() {
-	unsigned short host_short = 1234;
+	unsigned short int host_short = 1234;
 	unsigned long host_long = 567890;
 
 	// Convert from host to network byte order
-	unsigned short network_short = htons(host_short);
+	unsigned short int network_short = htons(host_short);
 	unsigned long network_long = htonl(host_long);
 
 	printf("Host short: %hu, Network short: %hu\n", host_short, network_short);
 	printf("Host long: %lu, Network long: %lu\n", host_long, network_long);
 
 	// Convert from network to host byte order
-	unsigned short converted_short = ntohs(network_short);
+	unsigned short int converted_short = ntohs(network_short);
 	unsigned long converted_long = ntohl(network_long);
 
 	printf("Network short: %hu, Converted short: %hu\n", network_short, converted_short);

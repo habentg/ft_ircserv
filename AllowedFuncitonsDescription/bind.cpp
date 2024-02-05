@@ -1,3 +1,5 @@
+
+
 /* The `bind` function in C/C++ is used in network programming, especially
 with sockets, to associate a socket with a specific address (such as an IP address)
 and a port number on the local machine. Here's what it does:

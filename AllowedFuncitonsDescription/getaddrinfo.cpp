@@ -36,8 +36,8 @@
 #include <arpa/inet.h>
 
 int main() {
-	const char *hostname = "www.google.com"; // Hostname to resolve
-	const char *service = "http"; // Service name or port number
+	const char *hostname = NULL; // Hostname to resolve
+	const char *service = "irc"; // Service name or port number
 
 	struct addrinfo hints, *res, *p;
 	int status;
