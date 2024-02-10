@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:44:30 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/05 16:42:20 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/11 01:36:41 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,45 +21,35 @@ int main(int ac, char **av) {
     Server& serverObj = Server::createServerInstance(portNumberDouble, std::string(av[1]));
     try {
         int sockfd = serverObj.server_listen_setup(av[1]);
+        serverObj.addToFdArray(sockfd); // add our listner socket fd to the array so we can watch for new connection request on it.
+        
         std::cout << "-------- LISTENING FOR CONNECTIONS .... ---------\n";
-        while (1) {
-            // signal will have to be setup here!
-            struct sockaddr_storage client_addr;
-            socklen_t client_addr_size = sizeof(client_addr);
-            int newFd = accept(sockfd, (sockaddr *)&client_addr, &client_addr_size);
-            std::cout << "-------- ACCEPTED A NEW CONNECTION ---------\n";
-            if (newFd == -1)
-                throw std::runtime_error("Error accepting connections!");
-            char ipstr[INET6_ADDRSTRLEN];
-            if (client_addr.ss_family == AF_INET) { // IPv4
-                const struct sockaddr_in* addr_in = reinterpret_cast<const struct sockaddr_in*>(&client_addr);
-                inet_ntop(AF_INET, &(addr_in->sin_addr), ipstr, sizeof(ipstr));
-            } else { // IPv6
-                const struct sockaddr_in6* addr_in6 = reinterpret_cast<const struct sockaddr_in6*>(&client_addr);
-                inet_ntop(AF_INET6, &(addr_in6->sin6_addr), ipstr, sizeof(ipstr));
-            }
-            std::cout << "->client addr: " << ipstr << std::endl;
-            // reviev
-            char buffer[1024];
-            int buffer_size = sizeof(buffer);
 
-            int bytes_received = recv(newFd, buffer, buffer_size, 0);
-            if (bytes_received == -1) {
-                perror("recv failed");
-                // Handle error
-            } else if (bytes_received == 0) {
-                throw std::runtime_error("Connection closed");
-                // Handle connection closure
+        while (1) { // our infinite loop (server main loop)
+            // monitoring our fds for any event.
+            // this will basiclly block untill an "event" happens
+            // it waits indefinitely for an event to occur (-1 timeout, the third arg)
+                //-> for now let it run for indefinitely but later we will add "pinging" feature i.e we will check on our clients after certain ammount of time, and we will desconnect them if they are not active or something.
+            if (poll(&(serverObj.getFdArray()[0]), serverObj.getFdArray().size(), -1) == -1)
+                throw std::runtime_error("Error polling problem");
+            // then we check at which fd does the event occur i.e the POLLIN event
+                // -> if its at the listner fd, it means we have a new connection
+                // -> if its on the other existing fds, it means we have a message incomming on that respective fd.
+            if (serverObj.getFdArray()[0].revents == POLLIN) {
+                // we accept the new connection and we add the newfd to our array ....
+                serverObj.acceptNewConnection();
             } else {
-                buffer[bytes_received] = '\0'; // Null-terminate the received data
-                std::cout << "->Message: [" << std::string(buffer).substr() << "] received!\n";
+                // we have to indetify the fd the event occured so we can "recv".
+                std::vector<pollfd>::iterator it = serverObj.getFdArray().begin();
+                for (; it != serverObj.getFdArray().end(); ++it) {
+                    if ((*it).revents == POLLIN) {
+                        std::cout << "this is from an existing client\n";
+                        serverObj.recieveMsg((*it).fd);
+                        break ;
+                    }
+                }
             }
-            //send
         }
-    } catch (std::string &err) {
-        std::cerr << err << std::endl;
-    } catch (const char* err) {
-        std::cerr << err << std::endl;
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
     } catch (...) {

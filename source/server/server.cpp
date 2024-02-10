@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:30:20 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/05 14:59:48 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/11 01:43:00 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,12 +44,15 @@ unsigned short int Server::getServerPortNumber(void) const {
     return this->_port_number;
 }
 
-
+std::vector<struct pollfd>& Server::getFdArray(void) {
+    return this->_fdsArray;
+}
 /* ------------------------------------------------------------------------------------------ */
 /*                           Creating Socket and Listening                                    */
 /* ------------------------------------------------------------------------------------------ */
 int Server::server_listen_setup(char *portNumber) {
     int sockfd;
+    int enableer = 1; // for setsockopt() -> to avoid "is already in use" error
     struct addrinfo hints;
 
     std::memset(&hints, 0, sizeof(hints));
@@ -61,13 +64,64 @@ int Server::server_listen_setup(char *portNumber) {
     int status = getaddrinfo(NULL, portNumber, &hints, &res);
     if (status != 0)
         throw std::runtime_error(gai_strerror(status));
+    if (res == NULL)
+        throw std::runtime_error("Error Address resolution result is NULL");
     sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (sockfd == -1) 
         throw std::runtime_error("Error creating socket");
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enableer, sizeof(int)))
+        throw std::runtime_error("Error setsockopt");
+    if (fcntl(sockfd, F_SETFL, O_NONBLOCK) < -1)
+        throw std::runtime_error("Error fcntl");
     if (bind(sockfd, res->ai_addr, res->ai_addrlen) < 0)
         throw std::runtime_error("Error binding socket");
     freeaddrinfo(res);
     if (listen(sockfd, SOMAXCONN) == -1)
         throw std::runtime_error("Error listening on socket");
     return (sockfd);
+}
+
+
+/* ------------------------------------------------------------------------------------------ */
+/*                           Creating Socket and Listening                                    */
+/* ------------------------------------------------------------------------------------------ */
+void    Server::addToFdArray(int newfd) {
+    // validate the new fd first --- comeback later
+    struct pollfd newConFdStruct;
+    newConFdStruct.fd = newfd;
+    newConFdStruct.events = POLLIN;
+    this->getFdArray().push_back(newConFdStruct);
+}
+
+/* ------------------------------------------------------------------------------------------ */
+/*                           Creating Socket and Listening                                    */
+/* ------------------------------------------------------------------------------------------ */
+
+void    Server::acceptNewConnection(void) {
+    struct sockaddr_storage client_addr;
+    socklen_t client_addr_size = sizeof(client_addr);
+    int newFd = accept(this->getFdArray()[0].fd, (sockaddr *)&client_addr, &client_addr_size);
+    std::cout << "new fd: " << newFd << std::endl;
+    std::cout << "-------- ACCEPTED A NEW CONNECTION ---------\n";
+    if (newFd == -1)
+        throw std::runtime_error("Error accepting connections!");
+    this->addToFdArray(newFd);
+}
+
+void Server::recieveMsg(int clientFd) {
+    char buffer[1024];
+    int buffer_size = sizeof(buffer);
+    
+    int bytes_received = recv(clientFd, buffer, buffer_size, 0);
+    if (bytes_received == -1) {
+        throw std::runtime_error("Error Receiving message from client");
+        // Handle error
+    } else if (bytes_received == 0) {
+        throw std::runtime_error("Error Connection closed with the client");
+        // Handle connection closure
+    } else {
+        buffer[bytes_received] = '\0'; // Null-terminate the received data
+        std::cout << "->Message: [" << std::string(buffer, (bytes_received - 1)) << "] received from Client fd: " << clientFd << "\n";
+    }
+    // we will see what we willl do with this message
 }

@@ -10,13 +10,15 @@ socket specifically for communication with that client.
 
 Here's an example: */
 
+#include <iostream>
+#include <string>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <netinet/in.h>
 
-#define PORT 8080
+#define PORT 8081
 #define MAX_PENDING_CONNECTIONS 10
 
 int main() {
@@ -51,11 +53,20 @@ int main() {
 	printf("Server listening on port %d\n", PORT);
 
 	// Accepting incoming connection
-	socklen_t len = sizeof(cli);
-	connfd = accept(sockfd, (struct sockaddr *)&cli, &len);
-	if (connfd < 0) {
-		perror("server accept failed");
-		exit(EXIT_FAILURE);
+	while(1) {
+		socklen_t len = sizeof(cli);
+		connfd = accept(sockfd, (struct sockaddr *)&cli, &len);
+		std::cout << "confd: " << connfd << std::endl;
+		if (connfd < 0) {
+			perror("server accept failed");
+			exit(EXIT_FAILURE);
+		}
+		 char buffer[1024];
+		int buffer_size = sizeof(buffer);
+
+		int bytes_received = recv(connfd, buffer, buffer_size, 0);
+		buffer[bytes_received] = '\0'; // Null-terminate the received data
+		std::cout << "->Message: [" << std::string(buffer).substr() << "] received!\n";
 	}
 
 	printf("Server accepted client connection\n");

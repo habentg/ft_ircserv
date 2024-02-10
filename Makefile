@@ -6,11 +6,11 @@
 #    By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/04 08:47:28 by hatesfam          #+#    #+#              #
-#    Updated: 2024/02/05 16:29:10 by hatesfam         ###   ########.fr        #
+#    Updated: 2024/02/11 00:05:39 by hatesfam         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
-NAME		= ft_ircserv
+NAME		= ircserv
 
 CXX 		= c++
 CXXFLAGS	= -Wall -Werror -Wextra -std=c++98 -MMD -MP
@@ -45,9 +45,11 @@ $(OBJ_PATH)/%.o: $(SRC_PATH)%.cpp
 
 	
 clean:
+	@echo "Removing Objects"
 	@$(RM) $(OBJ_PATH)
 
 fclean: clean
+	@echo "Removing Executable"
 	@$(RM) $(NAME)
 
 re: fclean all
