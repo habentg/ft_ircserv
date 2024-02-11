@@ -6,11 +6,19 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:44:30 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/11 01:36:41 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/11 04:00:31 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/irc.hpp"
+
+bool    stopServer = false;
+
+void    signalHandler(int sig) {
+    (void)sig;
+    std::cout << "Server stopped by CTRL-C!\n";
+    stopServer = true;
+}
 
 int main(int ac, char **av) {
     // check number of arguments, and validate port number
@@ -24,8 +32,9 @@ int main(int ac, char **av) {
         serverObj.addToFdArray(sockfd); // add our listner socket fd to the array so we can watch for new connection request on it.
         
         std::cout << "-------- LISTENING FOR CONNECTIONS .... ---------\n";
-
-        while (1) { // our infinite loop (server main loop)
+        // CTRL-C signal handler
+        signal(SIGINT, signalHandler);
+        while (!stopServer) { // our infinite loop (server main loop)
             // monitoring our fds for any event.
             // this will basiclly block untill an "event" happens
             // it waits indefinitely for an event to occur (-1 timeout, the third arg)

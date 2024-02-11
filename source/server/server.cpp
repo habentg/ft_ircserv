@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:30:20 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/11 01:43:00 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/11 03:54:42 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -123,5 +123,12 @@ void Server::recieveMsg(int clientFd) {
         buffer[bytes_received] = '\0'; // Null-terminate the received data
         std::cout << "->Message: [" << std::string(buffer, (bytes_received - 1)) << "] received from Client fd: " << clientFd << "\n";
     }
-    // we will see what we willl do with this message
+    // std::vector
+    // // new user
+    //     // -> create a new user/client object
+    //     // -> add it to the map (its key is its connection fd)
+    // Client  *newClient = new Client();
+    // this->_clients.insert(std::make_pair(newFd, newClient));    
+    // now that we have created the client and we have it added into our map,
+        // -> we will search by key, to get the user
 }

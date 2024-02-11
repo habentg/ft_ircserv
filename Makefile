@@ -6,7 +6,7 @@
 #    By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/04 08:47:28 by hatesfam          #+#    #+#              #
-#    Updated: 2024/02/11 00:05:39 by hatesfam         ###   ########.fr        #
+#    Updated: 2024/02/11 02:28:12 by hatesfam         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -20,10 +20,12 @@ SRC_PATH	= source
 OBJ_PATH	= objects
 SRC_SERVER	= source/server/server.cpp source/server/utils.cpp
 SRC_CHANNEL	= source/channel/channel.cpp
+SRC_CLIENT	= source/clients/client.cpp
 SRC_MAIN	= source/main.cpp
 
 SRC = $(SRC_SERVER) \
        $(SRC_CHANNEL) \
+       $(SRC_CLIENT) \
        $(SRC_MAIN)
 
 OBJS = $(SRC:source/%.c=$(OBJ_PATH)/%.o)
