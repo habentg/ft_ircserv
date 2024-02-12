@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/10 23:58:54 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/11 00:07:16 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/12 09:04:32 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,13 +17,18 @@
 
 class Client {
     private:
+        int         _clientFd;
+        bool        _isAuthenticated;
         std::string _NICK;
-        std::string _USERNAME;
-    public:
+        std::string _NAME;
+        char*       _ipaddr;
+        uint32_t    _port;
+        struct sockaddr* _clientInfo;
         Client(void);
-        Client(std::string nickname, std::string username);
+    public:
+        Client(int clientFd, struct sockaddr *clientInfo);
         ~Client(void);
-        
+        bool getIsAuthenticated(void) const;
 };
 
 #endif // !CLIENT_HPP

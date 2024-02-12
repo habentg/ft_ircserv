@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:44:30 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/11 04:00:31 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/12 09:35:44 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,12 +28,8 @@ int main(int ac, char **av) {
     // instantiating a single server object and assigning port-number & password 
     Server& serverObj = Server::createServerInstance(portNumberDouble, std::string(av[1]));
     try {
-        int sockfd = serverObj.server_listen_setup(av[1]);
-        serverObj.addToFdArray(sockfd); // add our listner socket fd to the array so we can watch for new connection request on it.
-        
-        std::cout << "-------- LISTENING FOR CONNECTIONS .... ---------\n";
-        // CTRL-C signal handler
-        signal(SIGINT, signalHandler);
+        serverObj.server_listen_setup(av[1]); // setting up the server to listen on the given port
+        signal(SIGINT, signalHandler); // setting up the signal handler for CTRL-C
         while (!stopServer) { // our infinite loop (server main loop)
             // monitoring our fds for any event.
             // this will basiclly block untill an "event" happens
@@ -44,15 +40,13 @@ int main(int ac, char **av) {
             // then we check at which fd does the event occur i.e the POLLIN event
                 // -> if its at the listner fd, it means we have a new connection
                 // -> if its on the other existing fds, it means we have a message incomming on that respective fd.
-            if (serverObj.getFdArray()[0].revents == POLLIN) {
-                // we accept the new connection and we add the newfd to our array ....
+            if (serverObj.getFdArray()[0].revents == POLLIN) { // we accept the new connection and we add the newfd to our array ....
                 serverObj.acceptNewConnection();
             } else {
                 // we have to indetify the fd the event occured so we can "recv".
                 std::vector<pollfd>::iterator it = serverObj.getFdArray().begin();
                 for (; it != serverObj.getFdArray().end(); ++it) {
                     if ((*it).revents == POLLIN) {
-                        std::cout << "this is from an existing client\n";
                         serverObj.recieveMsg((*it).fd);
                         break ;
                     }

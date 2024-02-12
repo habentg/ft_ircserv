@@ -6,7 +6,7 @@
 #    By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/04 08:47:28 by hatesfam          #+#    #+#              #
-#    Updated: 2024/02/11 02:28:12 by hatesfam         ###   ########.fr        #
+#    Updated: 2024/02/12 00:18:07 by hatesfam         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -55,5 +55,9 @@ fclean: clean
 	@$(RM) $(NAME)
 
 re: fclean all
+
+run:
+	@$(MAKE) -j $(NAME)
+	./ircserv 6667 asdf
 
 .PHONY: all clean fclean re
