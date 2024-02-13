@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:33:52 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/12 09:00:19 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/13 07:07:32 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,7 +43,7 @@ class Server {
         void                        saveClientINfo(int clientFd, struct sockaddr *clientInfo);
         void                        sendMsgToClient(int clientFd, std::string msg);
         void                        sendMsgToAllClients(std::string msg);
-        void                        validate_message(int clientFd, std::string msg);
+        void                        parse_message(int clientFd, std::string msg);
         class exc : public std::exception {
             public:
                 const char* what() const throw();

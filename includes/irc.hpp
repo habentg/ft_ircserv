@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 09:41:20 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/12 00:40:18 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/13 04:42:51 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,7 @@
 # include <arpa/inet.h>
 # include <fcntl.h>
 # include <poll.h>
+# include <signal.h>
 # include <vector>
 # include <map>
 

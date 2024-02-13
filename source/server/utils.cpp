@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 11:30:21 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/05 15:00:47 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/13 04:48:03 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,7 @@ double validate_input(int ac, char **av) {
         std::cerr << INVALID_PORT_NUMBER << std::endl;
         return -1;
     }
-    if (std::string(av[1]).length() < 4) {
+    if (std::string(av[2]).length() < 4) {
         std::cerr << PASSWORD_TOO_SHORT << std::endl;
         return -1;
     }

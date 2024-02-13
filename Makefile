@@ -6,14 +6,14 @@
 #    By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/04 08:47:28 by hatesfam          #+#    #+#              #
-#    Updated: 2024/02/12 00:18:07 by hatesfam         ###   ########.fr        #
+#    Updated: 2024/02/13 04:43:53 by hatesfam         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 NAME		= ircserv
 
 CXX 		= c++
-CXXFLAGS	= -Wall -Werror -Wextra -std=c++98 -MMD -MP
+CXXFLAGS	= -Wall -Werror -Wextra -std=c++98 -MMD -MP -g
 RM 			= rm -rf
 
 SRC_PATH	= source

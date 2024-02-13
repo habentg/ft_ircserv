@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:30:20 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/12 10:02:57 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/13 07:13:18 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -89,9 +89,11 @@ void Server::server_listen_setup(char *portNumber) {
 /* ------------------------------------------------------------------------------------------ */
 void    Server::addToFdArray(int newfd) {
     // validate the new fd first --- comeback later
+    // also initialize all of them for conditional jumps avoidance
     struct pollfd newConFdStruct;
     newConFdStruct.fd = newfd;
     newConFdStruct.events = POLLIN; // event to watch for is POLLIN
+    newConFdStruct.revents = 0; // revents is set to 0
     this->getFdArray().push_back(newConFdStruct);
 }
 
@@ -100,7 +102,8 @@ void    Server::addToFdArray(int newfd) {
 /* ------------------------------------------------------------------------------------------ */
 
 void Server::saveClientINfo(int clientFd, struct sockaddr *clientInfo) {
-    this->_clients.insert(std::pair<int, Client *>(clientFd, new Client(clientFd, clientInfo)));
+    Client client(clientFd, clientInfo);
+    this->_clients.insert(std::pair<int, Client *>(clientFd, &client));
     std::cout << "Client info saved! : " << this->_clients.size() << "\n";
 }
 
@@ -125,21 +128,63 @@ void Server::acceptNewConnection(void) {
 /*                 Recive a message from an existing connection                               */
 /* ------------------------------------------------------------------------------------------ */
 
-void Server::validate_message(int clientFd, std::string msg) {
-    std::cout << "Validating message: [" << msg << "] from client: " << clientFd << "\n";
+void Server::sendMsgToAllClients(std::string msg) {
+    std::map<int, Client *>::iterator it = this->_clients.begin();
+    for (; it != this->_clients.end(); it++)
+        this->sendMsgToClient(it->first, msg);
+}
+void Server::sendMsgToClient(int clientFd, std::string msg) {
+    int bytes_sent = send(clientFd, msg.c_str(), msg.length(), 0);
+    if (bytes_sent == -1)
+        throw std::runtime_error("Error sending message to client");
+}
+
+void Server::parse_message(int clientFd, std::string msg) {
     Client *client = this->_clients[clientFd];
-    (void)client;
     /* ALL THE COMMMANDS HERE!!!!! */
-    // if (!client->getIsAuthenticated()) { // validate PASS cmd
-    //     if (msg.)
-    // } 
-    // else {    // bunch of ifs for all the commands
-    //     if (msg == "QUIT") {
-    //         std::cout << "Client: " << clientFd << " has disconnected\n";
-    //         this->_clients.erase(clientFd);
-    //         close(clientFd);
-    //     }
-    // }
+    /* FROM SUBJECT:◦ You must be able to authenticate, set a nickname, a username, join a channel,
+                      send and receive private messages using your reference client. */
+    if (!client->getIsAuthenticated()) { // validate PASS cmd
+        if (msg.substr(0, 4) == "PASS") {
+            if (msg.substr(5) == this->_passwd) {
+                client->setIsAuthenticated(true);
+                std::cout << "Client: " << clientFd << " has been authenticated\n";
+            } else {
+                this->sendMsgToClient(clientFd, "ERROR :Access denied! correct password required\n");
+                std::cout << "Client: " << clientFd << " has failed to authenticate\n";
+            }
+        } else {
+            std::cout << "Client: " << clientFd << " has failed to authenticate\n";
+            this->sendMsgToClient(clientFd, "ERROR : password required for authentication\n");
+        }
+    }
+    else {    // bunch of ifs for all the commands
+        if (msg.substr(0, 4) == "PASS" && client->getIsAuthenticated()) { // if client is already authenticated
+            std::cout << "Client: " << clientFd << " has Already been authenticated\n";
+        }
+        else if (msg.substr(0, 4) == "NICK") {
+            std::map<int, Client *>::iterator it = this->_clients.begin();
+            for (; it != this->_clients.end(); it++)
+            {
+                if (it->second->getNICK() == msg.substr(5) && it->first != clientFd) {
+                    std::cout << "Client: " << clientFd << " entered already used up nickname\n";
+                    this->sendMsgToClient(clientFd, "ERROR : Nickname already in use\n");
+                    return ;
+                }
+            }
+            client->setNICK(msg.substr(5));
+            std::cout << "Client: " << clientFd << " has set his nickname to [" << client->getNICK() << "]\n";
+        }
+        else if (msg.substr(0, 8) == "USERNAME") {
+            client->setUserName(msg.substr(9));
+            std::cout << "Client: " << clientFd << " has set his username to [" << client->getUserName() << "]\n";
+        }
+        else if (msg == "QUIT") {
+            std::cout << "Client: " << clientFd << " has disconnected\n";
+            this->_clients.erase(clientFd);
+            close(clientFd);
+        }
+    }
 }
 
 void Server::recieveMsg(int clientFd) {
@@ -151,9 +196,13 @@ void Server::recieveMsg(int clientFd) {
         throw std::runtime_error("Error Receiving message from client");
     else if (bytes_received == 0)
         throw std::runtime_error("Error Connection closed with the client");
-    else {
-        buffer[bytes_received] = '\0'; // Null-terminate the received data
-        // std::cout << "->Message: [" << std::string(buffer, (bytes_received - 1)) << "] received from Client fd: " << clientFd << "\n";
-        this->validate_message(clientFd, std::string(buffer, (bytes_received - 1)));
+    buffer[bytes_received] = '\0'; // Null-terminate the received data
+    try
+    {
+        this->parse_message(clientFd, std::string(buffer, (bytes_received - 1)));
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
     }
 }

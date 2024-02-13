@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:44:30 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/12 09:35:44 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/13 07:14:11 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,7 @@ int main(int ac, char **av) {
     if (portNumberDouble == -1)
         return 1;
     // instantiating a single server object and assigning port-number & password 
-    Server& serverObj = Server::createServerInstance(portNumberDouble, std::string(av[1]));
+    Server& serverObj = Server::createServerInstance(portNumberDouble, std::string(av[2]));
     try {
         serverObj.server_listen_setup(av[1]); // setting up the server to listen on the given port
         signal(SIGINT, signalHandler); // setting up the signal handler for CTRL-C
@@ -35,7 +35,7 @@ int main(int ac, char **av) {
             // this will basiclly block untill an "event" happens
             // it waits indefinitely for an event to occur (-1 timeout, the third arg)
                 //-> for now let it run for indefinitely but later we will add "pinging" feature i.e we will check on our clients after certain ammount of time, and we will desconnect them if they are not active or something.
-            if (poll(&(serverObj.getFdArray()[0]), serverObj.getFdArray().size(), -1) == -1)
+            if (poll(&(serverObj.getFdArray()[0]), serverObj.getFdArray().size(), -1) == -1 && !stopServer)
                 throw std::runtime_error("Error polling problem");
             // then we check at which fd does the event occur i.e the POLLIN event
                 // -> if its at the listner fd, it means we have a new connection
@@ -57,6 +57,10 @@ int main(int ac, char **av) {
         std::cerr << e.what() << std::endl;
     } catch (...) {
         std::cerr << "ERROR!!" << std::endl;
+    }
+    if (stopServer) {
+        serverObj.sendMsgToAllClients("Server is shutting down!\n");
+        std::cout << "Server is shutting down!\n";
     }
     delete &serverObj;
     return 0;
