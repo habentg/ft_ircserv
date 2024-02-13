@@ -6,13 +6,13 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:44:30 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/13 07:14:11 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/13 09:27:08 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/irc.hpp"
 
-bool    stopServer = false;
+bool    stopServer = false; // global variable to stop the server when CTRL-C is pressed
 
 void    signalHandler(int sig) {
     (void)sig;
@@ -55,8 +55,6 @@ int main(int ac, char **av) {
         }
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
-    } catch (...) {
-        std::cerr << "ERROR!!" << std::endl;
     }
     if (stopServer) {
         serverObj.sendMsgToAllClients("Server is shutting down!\n");

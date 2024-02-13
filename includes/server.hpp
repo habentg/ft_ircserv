@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:33:52 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/13 07:07:32 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/13 10:16:39 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,8 +23,8 @@ class Server {
         const unsigned short int    _port_number;
         std::string                 _passwd;
         std::vector<struct pollfd>  _fdsArray; // fds of all connected clients including the listening socket fd.
-        std::map<int, Client *>     _clients; // 
-        static  Server*             serverInstance;
+        std::map<int, Client *>     _clients; // our users
+        static  Server*             serverInstance; // pointer to our server instance
 
         // constructors
         Server(void);
@@ -43,7 +43,9 @@ class Server {
         void                        saveClientINfo(int clientFd, struct sockaddr *clientInfo);
         void                        sendMsgToClient(int clientFd, std::string msg);
         void                        sendMsgToAllClients(std::string msg);
-        void                        parse_message(int clientFd, std::string msg);
+        void                        registerClient(int clientFd, std::string msg);
+        Client*                     getClient(int clientFd);
+        void                        doStuff(int clientFd, std::string msg);
         class exc : public std::exception {
             public:
                 const char* what() const throw();
