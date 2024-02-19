@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/11 02:24:22 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/19 13:50:49 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/19 21:49:34 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,7 @@ Client::Client(int clientFd, struct sockaddr *clientInfo){
         this->_ipaddr = inet_ntoa(((struct sockaddr_in *)clientInfo)->sin_addr);
         this->_port = ntohs(((struct sockaddr_in *)clientInfo)->sin_port);
         this->_clientInfo = clientInfo;
+        this->_wrongPassCount = 0;
     // std::cout << "Client Default constructor called!\n";
 }
 
@@ -77,4 +78,12 @@ void Client::setRealName(std::string value) {
 
 std::string Client::getIpAddr(void) const {
     return std::string(this->_ipaddr);
+}
+
+unsigned int Client::getWrongPassCount(void) const {
+    return this->_wrongPassCount;
+}
+
+void Client::setWrongPassCount(unsigned int value) {
+    this->_wrongPassCount = value;
 }

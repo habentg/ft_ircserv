@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/10 23:58:54 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/19 13:50:31 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/19 21:52:51 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,26 +27,37 @@ class Client {
         std::string _HOSTNAME;
         char*       _ipaddr;
         uint32_t    _port;
+        unsigned int _wrongPassCount;
         struct sockaddr* _clientInfo; // incase I need more info about the client
         Client(void);
     public:
         Client(int clientFd, struct sockaddr *clientInfo);
         ~Client(void);
         // getters and setters
-        bool getIsregistered(void) const;
-        void setIsregistered(bool value);
-        bool getIsAuthenticated(void) const;
-        int getClientFd(void) const;
-        void setIsAuthenticated(bool value);
-        std::string getNICK(void) const;
-        void setNICK(std::string value);
-        std::string getUserName(void) const;
-        void setUserName(std::string value);
-        std::string getHostName(void) const;
-        void setHostName(std::string value);
-        std::string getRealName(void) const;
-        void setRealName(std::string value);
-        std::string getIpAddr(void) const;
+        int             getClientFd(void) const;
+        
+        bool            getIsregistered(void) const;
+        void            setIsregistered(bool value);
+        
+        bool            getIsAuthenticated(void) const;
+        void            setIsAuthenticated(bool value);
+        
+        std::string     getNICK(void) const;
+        void            setNICK(std::string value);
+        
+        std::string     getUserName(void) const;
+        void            setUserName(std::string value);
+        
+        std::string     getHostName(void) const;
+        void            setHostName(std::string value);
+        
+        std::string     getRealName(void) const;
+        void            setRealName(std::string value);
+        
+        std::string     getIpAddr(void) const;
+        
+        unsigned int    getWrongPassCount(void) const;
+        void            setWrongPassCount(unsigned int value);
 };
 
 #endif // !CLIENT_HPP

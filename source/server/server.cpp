@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:30:20 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/19 18:31:39 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/19 22:25:45 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -160,11 +160,14 @@ void    Server::authenticateClient(Client *cl, std::string msg) {
         if (msg.substr(space_index + 1) == this->_passwd) {
             cl->setIsAuthenticated(true);
             std::cout << "Client: [" << cl->getClientFd() << "] has authenticated\n";
-        } else {
-            /* Wrong password replay to server */
-            // this->sendMsgToClient(cl->getClientFd(), WRONG_PASS(cl->getIpAddr()));
-            // this->removeClient(cl->getClientFd());
-            // return ;
+        }
+        else {
+            this->sendMsgToClient(cl->getClientFd(), WRONG_PASS(cl->getIpAddr()));
+            if (cl->getWrongPassCount() == 3) {
+                this->removeClient(cl->getClientFd());
+            } else
+                cl->setWrongPassCount(cl->getWrongPassCount() + 1);
+            return ;
         }
     }
     if (msg.substr(0, space_index) == "NICK") {
@@ -181,13 +184,12 @@ void    Server::authenticateClient(Client *cl, std::string msg) {
         std::cout << "Client: " << cl->getClientFd() << " has set his nickname to [" << cl->getNICK() << "]\n";
     }
     if (msg.substr(0, space_index) == "USER") {
-        std::string username = msg.substr(space_index + 1, msg.find(' ', space_index + 1) - space_index - 1);
-        cl->setUserName(username);
+        std::cout << "here\n";
         std::string realname = msg.substr(msg.find(':'));
         cl->setRealName(realname);
-        std::string user = msg.substr(1);
-        std::vector<std::string> sp= split(user, 32);
-        cl->setHostName("localhost");
+        std::vector<std::string> sp = split(msg, 32);
+        cl->setHostName(sp[3]);
+        cl->setUserName(sp[1]);
     }
 }
 
@@ -273,7 +275,6 @@ void Server::recieveMsg(int clientFd) {
         //     this->doStuff(clientFd, msg);
 
         /* NOTE: server is desconnecting after "NO PONG in 301 seconds ... think about it"*/
-        
     }
     catch(const std::exception& e)
     {
