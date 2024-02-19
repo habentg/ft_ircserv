@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:33:52 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/13 10:16:39 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/18 15:23:27 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,6 +45,9 @@ class Server {
         void                        sendMsgToAllClients(std::string msg);
         void                        registerClient(int clientFd, std::string msg);
         Client*                     getClient(int clientFd);
+        void                        removeClient(int clientFd);
+        std::string                 getPassword(void);
+        void                        CAPauth(Client* cl, std::string cap);
         void                        doStuff(int clientFd, std::string msg);
         class exc : public std::exception {
             public:

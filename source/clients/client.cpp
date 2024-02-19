@@ -6,14 +6,20 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/11 02:24:22 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/13 09:38:57 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/19 13:50:49 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../includes/irc.hpp"
 
-Client::Client(int clientFd, struct sockaddr *clientInfo)
-    : _clientFd(clientFd),_isRegistered(false), _isAuthenticated(false) ,_NICK(""), _USERNAME(""){
+Client::Client(int clientFd, struct sockaddr *clientInfo){
+        this->_clientFd = clientFd;
+        this->_isRegistered = false;
+        this->_isAuthenticated = false;
+        this->_NICK = "";
+        this->_USERNAME = "";
+        this->_REALNAME = "";
+        this->_HOSTNAME = "";
         this->_ipaddr = inet_ntoa(((struct sockaddr_in *)clientInfo)->sin_addr);
         this->_port = ntohs(((struct sockaddr_in *)clientInfo)->sin_port);
         this->_clientInfo = clientInfo;
@@ -50,4 +56,25 @@ std::string Client::getUserName(void) const {
 }
 void Client::setUserName(std::string value) {
     this->_USERNAME = value;
+}
+
+int Client::getClientFd(void) const {
+    return this->_clientFd;
+}
+
+std::string Client::getHostName(void) const {
+    return this->_HOSTNAME;
+}
+void Client::setHostName(std::string value) {
+    this->_HOSTNAME = value;
+}
+std::string Client::getRealName(void) const {
+    return this->_REALNAME;
+}
+void Client::setRealName(std::string value) {
+    this->_REALNAME = value;
+}
+
+std::string Client::getIpAddr(void) const {
+    return std::string(this->_ipaddr);
 }

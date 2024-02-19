@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 11:30:21 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/13 04:48:03 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/18 11:43:36 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,4 +28,35 @@ double validate_input(int ac, char **av) {
         return -1;
     }
     return pNumberDouble;
+}
+
+std::vector<std::string> newline_split(std::string& str) {
+    std::vector<std::string> arr;
+    std::string::size_type start = 0;
+    std::string::size_type end = 0;
+    
+    while ((end = str.find(13, start)) != std::string::npos) {
+        arr.push_back(str.substr(start, end - start));
+        start = end + 2; // Skip the newline character
+    }
+    if (start < str.length()) {
+        arr.push_back(str.substr(start));
+    }
+    
+    return arr;
+}
+
+std::vector<std::string> split(std::string& str, char delimiter) {
+    std::vector<std::string> arr;
+    std::string elem;
+    for (size_t i = 0; i < str.length(); ++i) {
+        if (str[i] == delimiter) {
+            arr.push_back(elem);
+            elem = "";
+        } else {
+            elem += str[i];
+        }
+    }
+    arr.push_back(elem); // Add the last element
+    return arr;
 }
