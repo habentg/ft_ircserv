@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 11:30:21 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/18 11:43:36 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/19 18:15:54 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,17 +46,35 @@ std::vector<std::string> newline_split(std::string& str) {
     return arr;
 }
 
+std::string trim(std::string& str) {
+    int len = str.length();
+    int i = 0;
+    for (; i < len; i++)
+    {
+        if (str[i] != '\n' && str[len - 1] != '\r' && str[len - 1] != 10 && str[i] != ' ')
+            break;
+    }
+    for (; len >= 0; len--)
+    {
+        if (str[len - 1] != '\n' && str[len - 1] != '\r' && str[len - 1] != 10 && str[len - 1] != ' ')
+            break;
+    }
+    if (i >= len)
+        return "";
+    return  str.substr(i, len - i);
+}
+
 std::vector<std::string> split(std::string& str, char delimiter) {
     std::vector<std::string> arr;
     std::string elem;
     for (size_t i = 0; i < str.length(); ++i) {
         if (str[i] == delimiter) {
-            arr.push_back(elem);
+            arr.push_back(trim(elem));
             elem = "";
         } else {
             elem += str[i];
         }
     }
-    arr.push_back(elem); // Add the last element
+    arr.push_back(trim(elem)); // Add the last element
     return arr;
 }

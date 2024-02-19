@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:30:20 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/19 16:19:51 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/19 18:31:39 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -151,49 +151,57 @@ void Server::sendMsgToClient(int clientFd, std::string msg) {
 }
 
 void Server::doStuff(int clientFd, std::string msg) {
-    std::cout << "Client: [" << clientFd << "] has sent: " << msg << std::endl;
+    std::cout << "registered Client: [" << clientFd << "] has sent: " << msg << std::endl;
 }
 
-void Server::CAPauth(Client* cl, std::string cap) {
-    std::vector<std::string> caps = split(cap, 13);
-    std::vector<std::string>::iterator it = caps.begin();
-    it++;
-    for (; it != caps.end(); it++) {
-        if ((*it).substr(0, 1) == " ") {
-            continue ;
+void    Server::authenticateClient(Client *cl, std::string msg) {
+    int space_index = msg.find(' ');
+    if (msg.substr(0, space_index) == "PASS") {
+        if (msg.substr(space_index + 1) == this->_passwd) {
+            cl->setIsAuthenticated(true);
+            std::cout << "Client: [" << cl->getClientFd() << "] has authenticated\n";
+        } else {
+            /* Wrong password replay to server */
+            // this->sendMsgToClient(cl->getClientFd(), WRONG_PASS(cl->getIpAddr()));
+            // this->removeClient(cl->getClientFd());
+            // return ;
         }
-        int space_index = (*it).find(' ');
-        if ((*it).substr(1, space_index - 1) == "PASS") {
-            if ((*it).substr(space_index + 1) == this->_passwd) {
-                cl->setIsAuthenticated(true);
-                std::cout << "Client: [" << cl->getClientFd() << "] has authenticated\n";
+    }
+    if (msg.substr(0, space_index) == "NICK") {
+        std::map<int, Client *>::iterator m_it = this->_clients.begin();
+        for (; m_it != this->_clients.end(); m_it++)
+        {
+            if (m_it->second->getNICK() == msg.substr(space_index + 1) && m_it->first != cl->getClientFd()) {
+                this->sendMsgToClient(cl->getClientFd(), GOODBYE(cl->getIpAddr(), cl->getNICK()));
+                this->removeClient(cl->getClientFd());
+                return ;
             }
         }
-        if ((*it).substr(1, space_index - 1) == "NICK") {
-            std::map<int, Client *>::iterator m_it = this->_clients.begin();
-            for (; m_it != this->_clients.end(); m_it++)
-            {
-                if (m_it->second->getNICK() == (*it).substr(space_index + 1) && m_it->first != cl->getClientFd()) {
-                    this->sendMsgToClient(cl->getClientFd(), GOODBYE(cl->getIpAddr(), cl->getNICK()));
-                    this->removeClient(cl->getClientFd());
-                    return ;
-                }
-            }
-            cl->setNICK((*it).substr(space_index + 1));
-            std::cout << "Client: " << cl->getClientFd() << " has set his nickname to [" << cl->getNICK() << "]\n";
+        cl->setNICK(msg.substr(space_index + 1));
+        std::cout << "Client: " << cl->getClientFd() << " has set his nickname to [" << cl->getNICK() << "]\n";
+    }
+    if (msg.substr(0, space_index) == "USER") {
+        std::string username = msg.substr(space_index + 1, msg.find(' ', space_index + 1) - space_index - 1);
+        cl->setUserName(username);
+        std::string realname = msg.substr(msg.find(':'));
+        cl->setRealName(realname);
+        std::string user = msg.substr(1);
+        std::vector<std::string> sp= split(user, 32);
+        cl->setHostName("localhost");
+    }
+}
+
+void Server::userAuthentication(Client* cl, std::string cap, bool isCap) {
+    if (isCap) {
+        std::vector<std::string> caps = split(cap, 13);
+        std::vector<std::string>::iterator it = caps.begin();
+        it++;
+        for (; it != caps.end(); it++) {
+            authenticateClient(cl, (*it));
         }
-        if ((*it).substr(1, space_index - 1) == "USER") {
-            std::cout << "/* message */" << std::endl;
-            std::string username = (*it).substr(space_index + 1, (*it).find(' ', space_index + 1) - space_index - 1);
-            cl->setUserName(username);
-            std::string realname = (*it).substr((*it).find(':'));
-            cl->setRealName(realname);
-            std::string user = (*it).substr(1);
-            std::vector<std::string> sp= split(user, 32);
-            // std::cout << "Client: " << cl->getClientFd() << " has set his hostname: [" << sp[3] << "]\n";
-            cl->setHostName("localhost");
-            // std::cout << "Client: " << cl->getClientFd() << " has set his username to [" << username << "]\n";
-        }
+    } else {
+        std::vector<std::string> msg_arr = split(cap, 10);
+        authenticateClient(cl, msg_arr[0]);
     }
         // // send welcome message
     if (!cl->getIsregistered() && cl->getIsAuthenticated() && cl->getNICK() != "" && cl->getUserName() != "") {
@@ -218,29 +226,18 @@ void Server::CAPauth(Client* cl, std::string cap) {
 
 void Server::registerClient(int clientFd, std::string msg) {
     Client *client = this->_clients[clientFd];
-    std::cout << "Client: [" << clientFd << "] has sent: {" << msg << "}\n";
     if (msg.substr(0, 6) == "CAP LS") {
-        std::cout << "client ip: " << CAP_LS_RESP(client->getIpAddr()) << "\n";
-        this->sendMsgToClient(clientFd, "CAP * LS :multi-prefix\r\n");
-        // this->sendMsgToClient(clientFd, ".\n");
-        std::cout << "Client: [" << clientFd << "] has sent CAP LS\n";
+        this->sendMsgToClient(clientFd, CAP_LS_RESP(client->getIpAddr()));
     }
     if (msg.substr(0, 7) == "CAP REQ") {
         this->sendMsgToClient(clientFd, CAP_ACK_RESP(client->getIpAddr()));
-        std::cout << "Client: [" << clientFd << "] has sent CAP REQ\n";
     }
     if (msg.substr(0, 7) == "CAP END") {
-        this->CAPauth(client, msg);
-        std::cout << "Client: [" << clientFd << "] has sent CAP END\n";
+        this->userAuthentication(client, msg, true);
     }
-    
-    // std::cout << "------------HERE IS YOUR CLIENT INFO--------\n";
-    // std::string mymsg = "NICK: [" + client->getNICK() + "]\nUSERNAME: [" 
-    //     + client->getUserName() + "]\nIsAuthenticated: [" + std::to_string(client->getIsAuthenticated()) + 
-    //         "]\nIsRegistered: [" + std::to_string(client->getIsregistered()) + "]\n";
-    // std::cout <<  mymsg << std::endl;
-    // std::cout << "------------########################--------\n\n\n";
-
+    else {
+        this->userAuthentication(client, msg, false);
+    }
 }
 
 void Server::removeClient(int clientFd) {
@@ -270,15 +267,12 @@ void Server::recieveMsg(int clientFd) {
     try
     {
         std::string msg = std::string(buffer);
-        // if (msg == "QUIT") { // if the client sends QUIT, we disconnect him
-        //     std::cout << "Client: " << clientFd << " has disconnected\n";
-        //     this->removeClient(clientFd);
-        //     return ;
-        // }
         if (!this->getClient(clientFd)->getIsregistered())
             this->registerClient(clientFd, msg);
         // else
         //     this->doStuff(clientFd, msg);
+
+        /* NOTE: server is desconnecting after "NO PONG in 301 seconds ... think about it"*/
         
     }
     catch(const std::exception& e)
