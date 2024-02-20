@@ -1,0 +1,10 @@
+<< CAP LS 302
+<< JOIN :
+>> :127.0.0.1 CAP * LS :multi-prefix
+<< CAP REQ :multi-prefix
+>> :127.0.0.1 CAP * ACK :multi-prefix
+<< CAP END
+<< PASS passwd
+<< NICK akdhsf
+<< USER laksjf laksjf localhost :adkjsh aksdjhf
+>> Server is shutting down!

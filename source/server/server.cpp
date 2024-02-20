@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:30:20 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/19 22:25:45 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/20 13:37:53 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -155,6 +155,8 @@ void Server::doStuff(int clientFd, std::string msg) {
 }
 
 void    Server::authenticateClient(Client *cl, std::string msg) {
+    if (msg == "")
+        return ;
     int space_index = msg.find(' ');
     if (msg.substr(0, space_index) == "PASS") {
         if (msg.substr(space_index + 1) == this->_passwd) {
@@ -184,7 +186,6 @@ void    Server::authenticateClient(Client *cl, std::string msg) {
         std::cout << "Client: " << cl->getClientFd() << " has set his nickname to [" << cl->getNICK() << "]\n";
     }
     if (msg.substr(0, space_index) == "USER") {
-        std::cout << "here\n";
         std::string realname = msg.substr(msg.find(':'));
         cl->setRealName(realname);
         std::vector<std::string> sp = split(msg, 32);
@@ -194,16 +195,12 @@ void    Server::authenticateClient(Client *cl, std::string msg) {
 }
 
 void Server::userAuthentication(Client* cl, std::string cap, bool isCap) {
-    if (isCap) {
-        std::vector<std::string> caps = split(cap, 13);
-        std::vector<std::string>::iterator it = caps.begin();
+    std::vector<std::string> msg_arr = split(cap, 13);
+    std::vector<std::string>::iterator it = msg_arr.begin();
+    if (isCap)
         it++;
-        for (; it != caps.end(); it++) {
-            authenticateClient(cl, (*it));
-        }
-    } else {
-        std::vector<std::string> msg_arr = split(cap, 10);
-        authenticateClient(cl, msg_arr[0]);
+    for (; it != msg_arr.end(); it++) {
+        authenticateClient(cl, (*it));
     }
         // // send welcome message
     if (!cl->getIsregistered() && cl->getIsAuthenticated() && cl->getNICK() != "" && cl->getUserName() != "") {
@@ -228,14 +225,13 @@ void Server::userAuthentication(Client* cl, std::string cap, bool isCap) {
 
 void Server::registerClient(int clientFd, std::string msg) {
     Client *client = this->_clients[clientFd];
-    if (msg.substr(0, 6) == "CAP LS") {
-        this->sendMsgToClient(clientFd, CAP_LS_RESP(client->getIpAddr()));
-    }
-    if (msg.substr(0, 7) == "CAP REQ") {
-        this->sendMsgToClient(clientFd, CAP_ACK_RESP(client->getIpAddr()));
-    }
-    if (msg.substr(0, 7) == "CAP END") {
-        this->userAuthentication(client, msg, true);
+    if (msg.substr(0, 3) == "CAP") {
+        if (msg.substr(0, 6) == "CAP LS")
+            this->sendMsgToClient(clientFd, CAP_LS_RESP(client->getIpAddr()));
+        else if (msg.substr(0, 7) == "CAP REQ")
+            this->sendMsgToClient(clientFd, CAP_ACK_RESP(client->getIpAddr()));
+        else if (msg.substr(0, 7) == "CAP END")
+            this->userAuthentication(client, msg, true);
     }
     else {
         this->userAuthentication(client, msg, false);
@@ -268,9 +264,11 @@ void Server::recieveMsg(int clientFd) {
     buffer[bytes_received] = '\0'; // Null-terminate the received data
     try
     {
+        
         std::string msg = std::string(buffer);
-        if (!this->getClient(clientFd)->getIsregistered())
+        if (!this->getClient(clientFd)->getIsregistered()) {
             this->registerClient(clientFd, msg);
+        }
         // else
         //     this->doStuff(clientFd, msg);
 

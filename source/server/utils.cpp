@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 11:30:21 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/19 18:15:54 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/20 13:31:11 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,7 +68,7 @@ std::vector<std::string> split(std::string& str, char delimiter) {
     std::vector<std::string> arr;
     std::string elem;
     for (size_t i = 0; i < str.length(); ++i) {
-        if (str[i] == delimiter) {
+        if (str[i] == delimiter || str[i] == 10) {
             arr.push_back(trim(elem));
             elem = "";
         } else {
