@@ -6,11 +6,11 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 11:30:21 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/20 13:31:11 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/21 15:18:16 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../includes/irc.hpp"
+#include "../includes/irc.hpp"
 
 double validate_input(int ac, char **av) {
     if (ac != 3) {
@@ -68,13 +68,27 @@ std::vector<std::string> split(std::string& str, char delimiter) {
     std::vector<std::string> arr;
     std::string elem;
     for (size_t i = 0; i < str.length(); ++i) {
-        if (str[i] == delimiter || str[i] == 10) {
+        if (str[i] == delimiter || str[i] == 10 || str[i] == 13) {
+            if (elem.empty())
+                continue ;
             arr.push_back(trim(elem));
             elem = "";
         } else {
             elem += str[i];
         }
     }
-    arr.push_back(trim(elem)); // Add the last element
+    if (!elem.empty())
+        arr.push_back(trim(elem)); // Add the last element
     return arr;
+}
+
+void printVector(std::vector<std::string> vec) {
+    std::cout << "[";
+    std::vector<std::string>::iterator it = vec.begin();
+    for(; it != vec.end(); ++it) {
+        if (it != vec.begin())
+            std::cout << ", ";
+        std::cout << *it;
+    }
+    std::cout << "]\n";
 }

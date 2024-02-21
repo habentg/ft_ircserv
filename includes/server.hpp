@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:33:52 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/19 18:25:12 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/21 14:55:15 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 #include "irc.hpp"
 
 class Client;
+class Command;
 
 class Server {
     private:
@@ -43,19 +44,17 @@ class Server {
         void                        saveClientINfo(int clientFd, struct sockaddr *clientInfo);
         void                        sendMsgToClient(int clientFd, std::string msg);
         void                        sendMsgToAllClients(std::string msg);
-        void                        registerClient(int clientFd, std::string msg);
+        void                        registerClient(int clientFd, Command *command);
         Client*                     getClient(int clientFd);
         void                        removeClient(int clientFd);
         std::string                 getPassword(void);
-        void                        userAuthentication(Client* cl, std::string cap, bool isCap);
-        void                        authenticateClient(Client *cl, std::string msg);
+        void                        userAuthentication(Client* cl, Command *command, bool isCap);
+        void                        authenticateClient(Client *cl, Command *command);
         void                        doStuff(int clientFd, std::string msg);
         class exc : public std::exception {
             public:
                 const char* what() const throw();
         };
 };
-
-double validate_input(int ac, char **av);
 
 #endif //!SERVER_HPP

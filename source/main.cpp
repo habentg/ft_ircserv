@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:44:30 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/13 09:27:08 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/21 15:54:57 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@ void    signalHandler(int sig) {
     stopServer = true;
 }
 
+/* Program Entry: */
 int main(int ac, char **av) {
     // check number of arguments, and validate port number
     double portNumberDouble = validate_input(ac, av);
@@ -40,8 +41,11 @@ int main(int ac, char **av) {
             // then we check at which fd does the event occur i.e the POLLIN event
                 // -> if its at the listner fd, it means we have a new connection
                 // -> if its on the other existing fds, it means we have a message incomming on that respective fd.
+            // std::cout << "we here\n";
             if (serverObj.getFdArray()[0].revents == POLLIN) { // we accept the new connection and we add the newfd to our array ....
+                // std::cout << "we here - 1\n";
                 serverObj.acceptNewConnection();
+                // std::cout << "we here - 2\n";
             } else {
                 // we have to indetify the fd the event occured so we can "recv".
                 std::vector<pollfd>::iterator it = serverObj.getFdArray().begin();

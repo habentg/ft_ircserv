@@ -6,8 +6,8 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:51:45 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/04 08:56:01 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/21 12:45:16 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../includes/channel.hpp"
+#include "../includes/channel.hpp"

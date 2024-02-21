@@ -6,58 +6,55 @@
 #    By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/04 08:47:28 by hatesfam          #+#    #+#              #
-#    Updated: 2024/02/13 07:18:16 by hatesfam         ###   ########.fr        #
+#    Updated: 2024/02/21 13:09:10 by hatesfam         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
+# Executable name:
 NAME		= ircserv
 
+# Compiler, flags and RM command:
 CXX 		= c++
 CXXFLAGS	= -Wall -Werror -Wextra -std=c++98
 RM 			= rm -rf
 
-SRC_PATH	= source
-OBJ_PATH	= objects
-SRC_SERVER	= source/server/server.cpp source/server/utils.cpp
-SRC_CHANNEL	= source/channel/channel.cpp
-SRC_CLIENT	= source/clients/client.cpp
-SRC_MAIN	= source/main.cpp
+# Source files:
+SRC = source/server.cpp source/utils.cpp source/channel.cpp source/client.cpp source/main.cpp source/command.cpp
 
-SRC = $(SRC_SERVER) \
-       $(SRC_CHANNEL) \
-       $(SRC_CLIENT) \
-       $(SRC_MAIN)
+# Object files directory:
+OBJ = obj
 
-OBJS = $(SRC:source/%.c=$(OBJ_PATH)/%.o)
+# Object files:
+OBJ_FILES = $(addprefix $(OBJ)/, $(SRC:.cpp=.o))
 
-all: $(OBJ_PATH) $(NAME)
+# Rule for generating object files:
+$(OBJ)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	@echo "	~ Making object file [$(notdir $@)] from source file {$(notdir $<)} ...\n"
+	@$(CXX) $(FLAGS) -c $< -o $@
 
-$(NAME): $(OBJS)
+# Rule for generating the executable:
+all: $(NAME)
+
+# Rule for generating the executable:
+$(NAME): $(OBJ_FILES)
 	@echo "Compiling and Linking Ft_IRCserv"
-	@$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME)
+	@$(CXX) $(FLAGS) $(OBJ_FILES) -o $@
 	@echo "Compilation successfull. Enjoy"
 
-$(OBJ_PATH):
-	@mkdir -p $(OBJ_PATH)/server
-	@mkdir -p $(OBJ_PATH)/channel
-
-$(OBJ_PATH)/%.o: $(SRC_PATH)%.cpp
-	@echo "Compiling $<"
-	@$(CXX) $(CXXFLAGS) -c $< -o $@
-
-	
-clean:
+# Rule for cleaning object files:
+clean: $(OBJ)
 	@echo "Removing Objects"
-	@$(RM) $(OBJ_PATH)
+	$(RM) $(OBJ)
 
+# Rule for cleaning object files, archives and executable:
 fclean: clean
 	@echo "Removing Executable"
-	@$(RM) $(NAME)
+	$(RM) $(NAME)
 
+# Rule for re-making the executable:
 re: fclean all
+	@echo "Rebuilding Executable"
 
-run:
-	@$(MAKE) -j $(NAME)
-	./ircserv 6667 asdf
-
-.PHONY: all clean fclean re
+# Phony targets:
+.PHONY: re fclean all clean

@@ -6,11 +6,11 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/11 02:24:22 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/19 21:49:34 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/21 12:45:16 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../includes/irc.hpp"
+#include "../includes/irc.hpp"
 
 Client::Client(int clientFd, struct sockaddr *clientInfo){
         this->_clientFd = clientFd;

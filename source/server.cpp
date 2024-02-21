@@ -6,11 +6,11 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:30:20 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/20 13:37:53 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/21 15:59:46 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../includes/irc.hpp"
+#include "../includes/irc.hpp"
 
 /* ------------------------------------------------------------------------------------------ */
 /*                           Constructing our server object                                   */
@@ -150,16 +150,19 @@ void Server::sendMsgToClient(int clientFd, std::string msg) {
         throw std::runtime_error("Error sending message to client");
 }
 
+/* After connection establishment:
+    1. client is sending a PING and we should respond with a PONG (or it will exit after 301 seconds)
+    2. PRIVMSG:-
+        * [PRIVMSG <recipient nickname> :<message to be sent>] - is the format
+        * we should check if nick
+*/
 void Server::doStuff(int clientFd, std::string msg) {
     std::cout << "registered Client: [" << clientFd << "] has sent: " << msg << std::endl;
 }
 
-void    Server::authenticateClient(Client *cl, std::string msg) {
-    if (msg == "")
-        return ;
-    int space_index = msg.find(' ');
-    if (msg.substr(0, space_index) == "PASS") {
-        if (msg.substr(space_index + 1) == this->_passwd) {
+void    Server::authenticateClient(Client *cl, Command *command) {
+    if (command->cmd == "PASS") {
+        if (command->params[0] == this->_passwd) {
             cl->setIsAuthenticated(true);
             std::cout << "Client: [" << cl->getClientFd() << "] has authenticated\n";
         }
@@ -172,36 +175,31 @@ void    Server::authenticateClient(Client *cl, std::string msg) {
             return ;
         }
     }
-    if (msg.substr(0, space_index) == "NICK") {
+    if (command->cmd == "NICK") {
         std::map<int, Client *>::iterator m_it = this->_clients.begin();
         for (; m_it != this->_clients.end(); m_it++)
         {
-            if (m_it->second->getNICK() == msg.substr(space_index + 1) && m_it->first != cl->getClientFd()) {
+            if (m_it->second->getNICK() == command->params[0] && m_it->first != cl->getClientFd()) {
                 this->sendMsgToClient(cl->getClientFd(), GOODBYE(cl->getIpAddr(), cl->getNICK()));
                 this->removeClient(cl->getClientFd());
                 return ;
             }
         }
-        cl->setNICK(msg.substr(space_index + 1));
+        cl->setNICK(command->params[0]);
         std::cout << "Client: " << cl->getClientFd() << " has set his nickname to [" << cl->getNICK() << "]\n";
     }
-    if (msg.substr(0, space_index) == "USER") {
-        std::string realname = msg.substr(msg.find(':'));
+    if (command->cmd == "USER") {
+        // printVector(command->params);
+        std::string realname = command->params[4].substr(command->params[3].find(':')) + command->params[4];
         cl->setRealName(realname);
-        std::vector<std::string> sp = split(msg, 32);
-        cl->setHostName(sp[3]);
-        cl->setUserName(sp[1]);
+        cl->setUserName(command->params[0]);
+        cl->setHostName(command->params[2]);
     }
 }
 
-void Server::userAuthentication(Client* cl, std::string cap, bool isCap) {
-    std::vector<std::string> msg_arr = split(cap, 13);
-    std::vector<std::string>::iterator it = msg_arr.begin();
-    if (isCap)
-        it++;
-    for (; it != msg_arr.end(); it++) {
-        authenticateClient(cl, (*it));
-    }
+void Server::userAuthentication(Client* cl, Command *command, bool isCap) {
+    (void)isCap;
+    authenticateClient(cl, command);
         // // send welcome message
     if (!cl->getIsregistered() && cl->getIsAuthenticated() && cl->getNICK() != "" && cl->getUserName() != "") {
         cl->setIsregistered(true);
@@ -215,26 +213,20 @@ void Server::userAuthentication(Client* cl, std::string cap, bool isCap) {
         this->sendMsgToClient(cl->getClientFd(), RPL_MOTD(cl->getIpAddr()));
         this->sendMsgToClient(cl->getClientFd(), RPL_ENDOFMOTD(cl->getIpAddr(), cl->getHostName()));
     }
-    // if (!cl->getIsregistered()) {
-    //     std::cout << "Client: " << cl->getClientFd() << " has not registered\n";
-    //     std::string goodbyeMessage = ":server.example.com 451 " + cl->getNICK() + " :You have not registered\n";
-    //     this->sendMsgToClient(cl->getClientFd(), goodbyeMessage);
-    //     this->removeClient(cl->getClientFd());
-    // }
 }
 
-void Server::registerClient(int clientFd, std::string msg) {
+void Server::registerClient(int clientFd, Command *command) {
     Client *client = this->_clients[clientFd];
-    if (msg.substr(0, 3) == "CAP") {
-        if (msg.substr(0, 6) == "CAP LS")
+    if (command->cmd == "CAP") {
+        if (command->params[0] == "LS")
             this->sendMsgToClient(clientFd, CAP_LS_RESP(client->getIpAddr()));
-        else if (msg.substr(0, 7) == "CAP REQ")
+        else if (command->params[0] == "REQ")
             this->sendMsgToClient(clientFd, CAP_ACK_RESP(client->getIpAddr()));
-        else if (msg.substr(0, 7) == "CAP END")
-            this->userAuthentication(client, msg, true);
+        // else if (command->params[0] == "END")
+        //     this->userAuthentication(client, cmd, true);
     }
     else {
-        this->userAuthentication(client, msg, false);
+        this->userAuthentication(client, command, false);
     }
 }
 
@@ -264,13 +256,20 @@ void Server::recieveMsg(int clientFd) {
     buffer[bytes_received] = '\0'; // Null-terminate the received data
     try
     {
-        
+        /* command construction */
         std::string msg = std::string(buffer);
-        if (!this->getClient(clientFd)->getIsregistered()) {
-            this->registerClient(clientFd, msg);
+        std::vector<std::string> arr_of_cmds = split(msg, '\0');
+        std::vector<std::string>::iterator it = arr_of_cmds.begin();
+        for (; it != arr_of_cmds.end(); ++it) {
+            Command *cmd = new Command((*it));
+            // std::cout << "MSG: [" << msg << "] CMD: " << cmd->cmd << " has: " << cmd->params.size() << " params\n";
+            if (!this->getClient(clientFd)->getIsregistered()) {
+                this->registerClient(clientFd, cmd);
+            }
+            // else
+            //     this->doStuff(clientFd, msg);
+            delete cmd;
         }
-        // else
-        //     this->doStuff(clientFd, msg);
 
         /* NOTE: server is desconnecting after "NO PONG in 301 seconds ... think about it"*/
     }
