@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:33:52 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/21 14:55:15 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/21 21:13:42 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,9 +20,10 @@ class Command;
 
 class Server {
     private:
-        int                         _sockfd;
-        const unsigned short int    _port_number;
-        std::string                 _passwd;
+        int                         _serverSocketFd;
+        const unsigned short int    _serverPort;
+        std::string                 _serverPassword;
+        std::string                 _serverHostName;
         std::vector<struct pollfd>  _fdsArray; // fds of all connected clients including the listening socket fd.
         std::map<int, Client *>     _clients; // our users
         static  Server*             serverInstance; // pointer to our server instance
@@ -35,8 +36,14 @@ class Server {
     public:
         ~Server(void);
         static Server& createServerInstance(double portNumberDouble, std::string password);
+        /* getters */
         unsigned short int getServerPortNumber(void) const;
         std::vector<struct pollfd>& getFdArray(void);
+        std::string                 getPassword(void) const;
+        std::string                 getServerHostName(void) const;
+        Client*                     getClient(int clientFd);
+        size_t                      getNumberOfClients(void) const;
+        /* methods */
         void                        addToFdArray(int newfd);
         void                        acceptNewConnection(void);
         void                        recieveMsg(int clientFd);
@@ -45,9 +52,7 @@ class Server {
         void                        sendMsgToClient(int clientFd, std::string msg);
         void                        sendMsgToAllClients(std::string msg);
         void                        registerClient(int clientFd, Command *command);
-        Client*                     getClient(int clientFd);
         void                        removeClient(int clientFd);
-        std::string                 getPassword(void);
         void                        userAuthentication(Client* cl, Command *command, bool isCap);
         void                        authenticateClient(Client *cl, Command *command);
         void                        doStuff(int clientFd, std::string msg);

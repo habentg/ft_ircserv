@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 11:30:21 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/21 15:18:16 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/21 18:27:09 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@ double validate_input(int ac, char **av) {
     char *endPtr;
     double pNumberDouble = std::strtod(av[1], &endPtr);
     if (*endPtr != '\0' || pNumberDouble < 1024 || pNumberDouble > 65535) {
-        std::cerr << INVALID_PORT_NUMBER << std::endl;
+        std::cerr << INVALID_serverPort << std::endl;
         return -1;
     }
     if (std::string(av[2]).length() < 4) {
