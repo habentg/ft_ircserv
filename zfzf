@@ -1,0 +1,19 @@
+<< CAP LS 302
+<< JOIN :
+>> :lab3r7s1.42abudhabi.ae CAP * LS :multi-prefix
+<< CAP REQ :multi-prefix
+>> :lab3r7s1.42abudhabi.ae CAP * ACK :multi-prefix
+<< CAP END
+<< PASS passwd
+<< NICK yuni
+<< USER alex alex localhost :asdfsf asdlkfjsdkljf
+>> :lab3r7s1.42abudhabi.ae 001 yuni :Welcome to the Internet Relay Network, yuni!alex@lab3r7s1.42abudhabi.ae
+>> :lab3r7s1.42abudhabi.ae 002 yuni :Your host is lab3r7s1.42abudhabi.ae, running version <1.0>
+>> :lab3r7s1.42abudhabi.ae 003 yuni :lab3r7s1.42abudhabi.ae was created <human-readable date/time>
+>> :lab3r7s1.42abudhabi.ae 004 yuni :CLIENT SHOULD DESCOVER AVAILABLE FEATURES using RPL_ISUPPORT tokens <NO FUCKING IDEA HOW TO DO THIS ... TOMORROWS PROBLEM!>
+>> :lab3r7s1.42abudhabi.ae 005 yuni :are supported by this server <tomorrows problem>
+>> :lab3r7s1.42abudhabi.ae 375 yuni :- lab3r7s1.42abudhabi.ae Message of the day - 
+>> :lab3r7s1.42abudhabi.ae 372 yuni :- MY NAME IS ...... 
+>> :lab3r7s1.42abudhabi.ae 376 yuni :lab3r7s1.42abudhabi.ae End of /MOTD command.
+<< MODE yuni +i
+<< PING lab3r7s1.42abudhabi.ae

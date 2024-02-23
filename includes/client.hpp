@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/10 23:58:54 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/19 21:52:51 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/22 13:00:37 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@ class Client {
     private:
         
         int         _clientFd;
-        bool        _isRegistered;
+        bool        _isConnected;
         bool        _isAuthenticated;
         std::string _NICK;
         std::string _USERNAME;
@@ -36,7 +36,7 @@ class Client {
         // getters and setters
         int             getClientFd(void) const;
         
-        bool            getIsregistered(void) const;
+        bool            IsClientConnected(void) const;
         void            setIsregistered(bool value);
         
         bool            getIsAuthenticated(void) const;

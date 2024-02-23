@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:30:20 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/21 21:13:16 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/24 02:12:51 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -79,7 +79,7 @@ void Server::server_listen_setup(char *portNumber) {
 
     char hostname[256];
     if (gethostname(hostname, sizeof(hostname)) != 0)
-        throw std::runtime_error("Error Hostname resolution failed");
+        throw std::runtime_error("Error: Hostname resolution failed");
     this->_serverHostName = std::string(hostname);
     std::memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
@@ -91,19 +91,19 @@ void Server::server_listen_setup(char *portNumber) {
     if (status != 0)
         throw std::runtime_error(gai_strerror(status));
     if (res == NULL)
-        throw std::runtime_error("Error Address resolution result is NULL");
+        throw std::runtime_error("Error: Address resolution result is NULL");
     sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (sockfd == -1) 
-        throw std::runtime_error("Error creating socket");
+        throw std::runtime_error("Error: creating socket");
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enableer, sizeof(int)))
-        throw std::runtime_error("Error setsockopt");
+        throw std::runtime_error("Error: setsockopt");
     if (fcntl(sockfd, F_SETFL, O_NONBLOCK) < -1)
-        throw std::runtime_error("Error fcntl");
+        throw std::runtime_error("Error: fcntl");
     if (bind(sockfd, res->ai_addr, res->ai_addrlen) < 0)
-        throw std::runtime_error("Error binding socket");
+        throw std::runtime_error("Error: binding socket");
     freeaddrinfo(res);
     if (listen(sockfd, SOMAXCONN) == -1)
-        throw std::runtime_error("Error listening on socket");
+        throw std::runtime_error("Error: listening on socket");
     this->_serverSocketFd = sockfd;
     this->addToFdArray(sockfd); // add our listner socket fd to the array so we can watch for new connection request on it.
     
@@ -124,6 +124,17 @@ void    Server::addToFdArray(int newfd) {
     this->getFdArray().push_back(newConFdStruct);
 }
 
+bool    Server::isNickNamDuplicate(int clientFd, std::string nick) const {
+    std::map<int, Client *>::const_iterator map_it = this->_clients.begin();
+    for (; map_it != this->_clients.end(); map_it++)
+    {
+        if (map_it->first != clientFd && map_it->second->getNICK() == nick) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /* ------------------------------------------------------------------------------------------ */
 /*                           creating a client for every fd                                   */
 /* ------------------------------------------------------------------------------------------ */
@@ -142,7 +153,7 @@ void Server::acceptNewConnection(void) {
     socklen_t client_addr_size = sizeof(client_addr);
     int newClientFd = accept(this->_serverSocketFd, (sockaddr *)&client_addr, &client_addr_size);
     if (newClientFd == -1) {
-        throw std::runtime_error("Error accepting connections!");
+        throw std::runtime_error("Error: accepting connections!");
     }
     this->addToFdArray(newClientFd);
     struct sockaddr *clientInfo = (struct sockaddr *)&client_addr;
@@ -163,7 +174,7 @@ void Server::sendMsgToAllClients(std::string msg) {
 void Server::sendMsgToClient(int clientFd, std::string msg) {
     int bytes_sent = send(clientFd, msg.c_str(), msg.length(), 0);
     if (bytes_sent == -1)
-        throw std::runtime_error("Error sending message to client");
+        throw std::runtime_error("Error: sending message to client");
 }
 
 /* After connection establishment:
@@ -172,28 +183,21 @@ void Server::sendMsgToClient(int clientFd, std::string msg) {
         * [PRIVMSG <recipient nickname> :<message to be sent>] - is the format
         * we should check if nick
 */
-void Server::doStuff(int clientFd, std::string msg) {
-    std::cout << "registered Client: [" << clientFd << "] has sent: " << msg << std::endl;
+void Server::doStuff(int clientFd, Command *command) {
+    // if (command->cmd == "PING")
+    //     this->sendMsgToClient(clientFd, );
+    std::cout << "registered Client: [" << clientFd << "] has sent: " << command->cmd << std::endl;
 }
 
-void    Server::authenticateClient(Client *cl, Command *command) {
+bool    Server::authenticateClient(Client *cl, Command *command) {
     if (command->cmd == "PASS") {
         command->password(cl, this);
-        return ;
     }
-    if (cl->getIsAuthenticated()) {
+    else if (cl->getIsAuthenticated()) {
         if (command->cmd == "NICK") {
-            std::map<int, Client *>::iterator m_it = this->_clients.begin();
-            for (; m_it != this->_clients.end(); m_it++)
-            {
-                if (m_it->second->getNICK() == command->params[0] && m_it->first != cl->getClientFd()) {
-                    this->sendMsgToClient(cl->getClientFd(), GOODBYE(this->getServerHostName(), cl->getNICK()));
-                    this->removeClient(cl->getClientFd());
-                    return ;
-                }
-            }
-            cl->setNICK(command->params[0]);
-            std::cout << "Client: " << cl->getClientFd() << " has set his nickname to [" << cl->getNICK() << "]\n";
+            std::cout << "->-> BEF  ARE WE HERE............................\n";
+            return (command->nickname(cl, this));
+            std::cout << "AFF  ";
         }
         if (command->cmd == "USER") {
             // printVector(command->params);
@@ -203,27 +207,30 @@ void    Server::authenticateClient(Client *cl, Command *command) {
             cl->setHostName(command->params[2]);
         }
     }
-    // else {
+    else {
         // we will check if sending "password needed" is allowd!
-    // }
+        std::cout << "["<< command->cmd <<"]: You have to be authenitcated to continue ...\n";
+    }
+    return true;
 }
 
-void Server::userAuthentication(Client* cl, Command *command, bool isCap) {
-    (void)isCap;
-    authenticateClient(cl, command);
+void Server::userAuthenticationAndWelcome(Client* cl, Command *command) {
+    // authenticate
+    if (authenticateClient(cl, command) == false)
+        return ;
         // // send welcome message
-    if (!cl->getIsregistered() && cl->getIsAuthenticated() && cl->getNICK() != "" && cl->getUserName() != "") {
+    if (!cl->IsClientConnected() && cl->getIsAuthenticated() && cl->getNICK() != "" && cl->getUserName() != "") {
         cl->setIsregistered(true);
-        std::cout << "Client: " << cl->getClientFd() << " has registered\n";
         this->sendMsgToClient(cl->getClientFd(), RPL_WELCOME(this->getServerHostName(), cl->getUserName(), cl->getNICK()));
         this->sendMsgToClient(cl->getClientFd(), RPL_YOURHOST(this->getServerHostName(), cl->getNICK()));
         this->sendMsgToClient(cl->getClientFd(), RPL_CREATED(this->getServerHostName(), cl->getNICK()));
         this->sendMsgToClient(cl->getClientFd(), RPL_MYINFO(this->getServerHostName(), cl->getNICK()));
         this->sendMsgToClient(cl->getClientFd(), RPL_ISUPPORT(this->getServerHostName(), cl->getNICK()));
-        
+        /* MOTD */
         this->sendMsgToClient(cl->getClientFd(), RPL_MOTDSTART(this->getServerHostName(), cl->getNICK()));
         this->sendMsgToClient(cl->getClientFd(), RPL_MOTD(this->getServerHostName(), cl->getNICK()));
         this->sendMsgToClient(cl->getClientFd(), RPL_ENDOFMOTD(this->getServerHostName(), cl->getNICK()));
+        std::cout << "Client: " << cl->getClientFd() << " is Connected!!\n";
     }
 }
 
@@ -231,14 +238,14 @@ void Server::registerClient(int clientFd, Command *command) {
     Client *client = this->_clients[clientFd];
     if (command->cmd == "CAP") {
         if (command->params[0] == "LS")
-            this->sendMsgToClient(clientFd, CAP_LS_RESP(this->getServerHostName()));
+            (this->sendMsgToClient(clientFd, CAP_LS_RESP(this->getServerHostName())));
         else if (command->params[0] == "REQ")
             this->sendMsgToClient(clientFd, CAP_ACK_RESP(this->getServerHostName()));
-        // else if (command->params[0] == "END")
-        //     this->userAuthentication(client, cmd, true);
+        else if (command->params[0] == "END")
+            std::cout<<"CAP End response sent\n";
     }
     else {
-        this->userAuthentication(client, command, false);
+        this->userAuthenticationAndWelcome(client, command);
     }
 }
 
@@ -262,9 +269,9 @@ void Server::recieveMsg(int clientFd) {
     std::memset(buffer, 0, buffer_size);
     int bytes_received = recv(clientFd, buffer, buffer_size, 0);
     if (bytes_received == -1)
-        throw std::runtime_error("Error Receiving message from client");
+        throw std::runtime_error("Error: Receiving message from client");
     else if (bytes_received == 0)
-        throw std::runtime_error("Error Connection closed with the client");
+        return ;
     buffer[bytes_received] = '\0'; // Null-terminate the received data
     try
     {
@@ -278,12 +285,12 @@ void Server::recieveMsg(int clientFd) {
         for (; it != arr_of_cmds.end(); ++it) {
             Command *cmd = new Command((*it));
             // std::cout << "MSG: [" << msg << "] CMD: " << cmd->cmd << " has: " << cmd->params.size() << " params\n";
-            if (!this->getClient(clientFd)->getIsregistered()) {
+            if (this->getClient(clientFd)->IsClientConnected() == false) {
                 this->registerClient(clientFd, cmd);
             }
-            // else
-            //     this->doStuff(clientFd, msg);
-            delete cmd;
+            else
+                this->doStuff(clientFd, cmd);
+            delete cmd; // we dont need the command anymore
         }
 
         /* NOTE: server is desconnecting after "NO PONG in 301 seconds ... think about it"*/

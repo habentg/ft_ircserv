@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/11 02:24:22 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/21 19:15:18 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/22 13:00:37 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 
 Client::Client(int clientFd, struct sockaddr *clientInfo){
         this->_clientFd = clientFd;
-        this->_isRegistered = false;
+        this->_isConnected = false;
         this->_isAuthenticated = false;
         this->_NICK = "";
         this->_USERNAME = "";
@@ -38,11 +38,11 @@ bool Client::getIsAuthenticated(void) const {
 void Client::setIsAuthenticated(bool value) {
     this->_isAuthenticated = value;
 }
-bool Client::getIsregistered(void) const {
-    return this->_isRegistered;
+bool Client::IsClientConnected(void) const {
+    return this->_isConnected;
 }
 void Client::setIsregistered(bool value) {
-    this->_isRegistered = value;
+    this->_isConnected = value;
 }
 
 std::string Client::getNICK(void) const {

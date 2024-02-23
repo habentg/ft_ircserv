@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:44:30 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/21 15:54:57 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/22 13:03:00 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ int main(int ac, char **av) {
             // it waits indefinitely for an event to occur (-1 timeout, the third arg)
                 //-> for now let it run for indefinitely but later we will add "pinging" feature i.e we will check on our clients after certain ammount of time, and we will desconnect them if they are not active or something.
             if (poll(&(serverObj.getFdArray()[0]), serverObj.getFdArray().size(), -1) == -1 && !stopServer)
-                throw std::runtime_error("Error polling problem");
+                throw std::runtime_error("Error: polling problem");
             // then we check at which fd does the event occur i.e the POLLIN event
                 // -> if its at the listner fd, it means we have a new connection
                 // -> if its on the other existing fds, it means we have a message incomming on that respective fd.

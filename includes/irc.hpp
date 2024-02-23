@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 09:41:20 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/21 19:55:24 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/24 02:06:35 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,6 +51,9 @@
 #define RPL_MOTDSTART(hostname, nickname)            std::string(":" + hostname + " 375 " + nickname + " :- " + hostname + " Message of the day - \r\n")
 #define RPL_MOTD(hostname, nickname)                 std::string(":" + hostname + " 372 " + nickname + " :- MY NAME IS ...... \r\n")
 #define RPL_ENDOFMOTD(hostname, nickname)            std::string(":" + hostname + " 376 " + nickname + " :" +hostname+ " End of /MOTD command.\r\n")
+
+/* PONG */
+#define PONG(hostname, cmd)           std::string(":" + hostname + " 464 " + cmd + " :Not enough parameters\r\n")
 
 /* Server to Client Error Responses */
 #define ERR_NEEDMOREPARAMS(hostname, cmd)           std::string(":" + hostname + " 464 " + cmd + " :Not enough parameters\r\n")

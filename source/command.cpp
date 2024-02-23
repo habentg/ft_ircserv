@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/21 12:52:25 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/21 21:19:48 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/22 14:30:31 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,25 +67,22 @@ void    Command::password(Client *client, Server* servInstance) {
     Servers MAY have additional implementation-specific nickname restrictions and SHOULD avoid the use of nicknames 
         which are ambiguous with commands or command parameters where this could lead to confusion or error.
 */
-// bool validNickName(std::vector<std::string> nick_params) {
-//     if (nick_params.empty())
-//         return false;
-//     return true;
-// }
+bool validNickName(std::vector<std::string> nick_params) {
+    if (nick_params.empty())
+        return false;
+    return true;
+}
 
-// bool    Command::nickname(Client *client, Server* servInstance) {
-//     if (validNickName(this->params) == false) {
-//         return false;
-//     }
-//     for (size_t i = 4; i < (servInstance->getNumberOfClients() + 3); i++)
-//     {
-//         Client *currentClient = servInstance->getClient(i)
-//         if (m_it->second->getNICK() == this->params[0] && m_it->first != client->getClientFd()) {
-//             servInstance->sendMsgToClient(client->getClientFd(), GOODBYE(servInstance->getServerHostName(), client->getNICK()));
-//             servInstance->removeClient(client->getClientFd());
-//             return ;
-//         }
-//     }
-//     client->setNICK(this->params[0]);
-//     std::cout << "Client: " << client->getClientFd() << " has set his nickname to [" << client->getNICK() << "]\n";
-// }
+bool    Command::nickname(Client *client, Server* servInstance) {
+    if (validNickName(this->params) == false) {
+        // we will see what to replay to the client
+        return false;
+    }
+    if (servInstance->isNickNamDuplicate(client->getClientFd(), this->params[0]) == true) {
+        servInstance->sendMsgToClient(client->getClientFd(), GOODBYE(servInstance->getServerHostName(), client->getNICK()));
+        return false;
+    }
+    client->setNICK(this->params[0]);
+    std::cout << "Client: " << client->getClientFd() << " has set his nickname to [" << client->getNICK() << "]\n";
+    return true;
+}

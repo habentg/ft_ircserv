@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/04 08:33:52 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/21 21:13:42 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/02/22 14:36:33 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,9 +53,10 @@ class Server {
         void                        sendMsgToAllClients(std::string msg);
         void                        registerClient(int clientFd, Command *command);
         void                        removeClient(int clientFd);
-        void                        userAuthentication(Client* cl, Command *command, bool isCap);
-        void                        authenticateClient(Client *cl, Command *command);
-        void                        doStuff(int clientFd, std::string msg);
+        bool                        isNickNamDuplicate(int clientFd, std::string nick) const;
+        void                        userAuthenticationAndWelcome(Client* cl, Command *command);
+        bool                        authenticateClient(Client *cl, Command *command);
+        void                        doStuff(int clientFd, Command *command);
         class exc : public std::exception {
             public:
                 const char* what() const throw();
