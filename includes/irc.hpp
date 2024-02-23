@@ -53,13 +53,15 @@
 #define RPL_ENDOFMOTD(hostname, nickname)            std::string(":" + hostname + " 376 " + nickname + " :" +hostname+ " End of /MOTD command.\r\n")
 
 /* PONG */
-#define PONG(hostname, cmd)           std::string(":" + hostname + " 464 " + cmd + " :Not enough parameters\r\n")
+// #define PONG(hostname, cmd)                         std::string(":" + hostname + " 464 " + nickname + " :nickname aready in use\r\n")
 
 /* Server to Client Error Responses */
 #define ERR_NEEDMOREPARAMS(hostname, cmd)           std::string(":" + hostname + " 464 " + cmd + " :Not enough parameters\r\n")
 #define ERR_ALREADYREGISTERED(hostname)             std::string(":" + hostname + " 462 :You are already registered\r\n")
 #define ERR_PASSWDMISMATCH(hostname)                std::string(":" + hostname + " 464 :Password incorrect\r\n")
-
+#define ERR_NICKNAMEINUSE(hostname, nickname)       std::string(":" + hostname + " 433 " + nickname +" :Nickname already in use\r\n")
+#define ERR_ERRONEUSNICKNAME(hostname)              std::string(":" + hostname + " 432 :you have characters in your nickname that are not supported in our server\r\n")
+#define ERR_NONICKNAMEGIVEN(hostname)               std::string(":" + hostname + " 431 :you havent provided with a nickname yet\r\n")
 
 #define GOODBYE(hostname, nickname)    std::string(":" + hostname + " 451 :Nickname already in use\r\n")
 
@@ -77,9 +79,10 @@
 
 
 
-double validate_input(int ac, char **av);
-std::vector<std::string> split(std::string& str, char delimiter);
-std::vector<std::string> newline_split(std::string& str);
-void printVector(std::vector<std::string> vec);
+double                      validate_input(int ac, char **av);
+std::vector<std::string>    split(std::string& str, char delimiter);
+std::vector<std::string>    newline_split(std::string& str);
+void                        printVector(std::vector<std::string> vec);
+std::string                 lowerCaseString(std::string str);
 
 #endif // !IRC_HPP

@@ -128,7 +128,7 @@ bool    Server::isNickNamDuplicate(int clientFd, std::string nick) const {
     std::map<int, Client *>::const_iterator map_it = this->_clients.begin();
     for (; map_it != this->_clients.end(); map_it++)
     {
-        if (map_it->first != clientFd && map_it->second->getNICK() == nick) {
+        if (map_it->first != clientFd && lowerCaseString(map_it->second->getNICK()) == nick) {
             return true;
         }
     }
@@ -195,9 +195,9 @@ bool    Server::authenticateClient(Client *cl, Command *command) {
     }
     else if (cl->getIsAuthenticated()) {
         if (command->cmd == "NICK") {
-            std::cout << "->-> BEF  ARE WE HERE............................\n";
+            // std::cout << "->-> BEF  ARE WE HERE............................\n";
             return (command->nickname(cl, this));
-            std::cout << "AFF  ";
+            // std::cout << "AFF  ";
         }
         if (command->cmd == "USER") {
             // printVector(command->params);

@@ -92,3 +92,11 @@ void printVector(std::vector<std::string> vec) {
     }
     std::cout << "]\n";
 }
+
+std::string lowerCaseString(std::string str) {
+    std::string lower;
+    for (size_t i = 0; i < str.length(); ++i) {
+        lower[i] = std::tolower(str[i]);
+    }
+    return (lower);
+}
