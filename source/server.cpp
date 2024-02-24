@@ -130,7 +130,6 @@ int    Server::isClientAvailable(int clientFd, std::string nick) const {
     {
         // if (map_it->first != clientFd && lowerCaseString(map_it->second->getNICK()) == lowerCaseString(nick)) {
         if (map_it->first != clientFd && (map_it->second->getNICK()) == (nick)) {
-            std::cout << "{NICK: " << map_it->second->getNICK() << " & " << nick << " are the same/close}\n";
             return (map_it->first);
         }
     }
@@ -185,30 +184,16 @@ void Server::sendMsgToClient(int clientFd, std::string msg) {
         * [PRIVMSG <recipient nickname> :<message to be sent>] - is the format
         * we should check if nick
 */
-std::string constructReplayMsg(std::string rpl) {
-    std::string str = rpl + "\r\n";
-    return str;
+std::string Server::constructReplayMsg(Client *senderClient, int recverFd, Command *cmd, std::string recieverNick) {
+    std::string msg = cmd->raw_cmd.substr(cmd->raw_cmd.find(':') + 1);
+    std::string rply = PRIVMSG_RPLY(senderClient->getNICK(), senderClient->getUserName(), this->getServerHostName(), recieverNick, msg);
+    return rply;
 }
 void Server::doStuff(Client* client, Command *command) {
     if (command->cmd == "PING") // somehow this shit is not working, I am sending PONG replay the same way a real server is doing it ... FUCK
         this->sendMsgToClient(client->getClientFd(), PONG(this->getServerHostName()));
     if (command->cmd == "PRIVMSG") {
-        std::cout << "is we here\n";
-        // if (isChannelName(command->params[0]) == true)
-        //     sendToChannel();
-        if (validNickName(command->params, client->getClientFd(), this, command->cmd) == false) {
-            return ;
-        }
-        std::cout << "is we here --- valid\n";
-        int recieverFd = this->isClientAvailable(client->getClientFd(), command->params[0]);
-        if (recieverFd == 0) {
-            std::cout << "No such client\n";
-            return ;
-        }
-        std::cout << "is we here --- to be sent\n";
-        this->sendMsgToClient(recieverFd, constructReplayMsg(command->params[1]));
-        return ;
-
+        command->privmsg(client, this);
     }
     if (command->cmd == "JOIN") {
         std::cout << "CHANNELL JOIN\n";
@@ -219,6 +204,9 @@ void Server::doStuff(Client* client, Command *command) {
                 * a list of all users -
                 * number of users limit
         */
+    }
+    if (command->cmd == "WHOIS") {
+        std::cout << "we will replay with the information of the nickname\n";
     }
     std::cout << "registered Client: [" << client->getClientFd() << "] has sent: " << command->cmd << std::endl;
 }
@@ -245,7 +233,7 @@ void Server::userAuthenticationAndWelcome(Client* cl, Command *command) {
     if (authenticateClient(cl, command) == false)
         return ;
         // // send welcome message
-    if (cl->getIsAuthenticated() && cl->getUserName() != "") {
+    if (cl->getIsAuthenticated() && cl->getUserName() != "" && cl->getNICK() != "") {
         cl->setIsregistered(true);
         this->sendMsgToClient(cl->getClientFd(), RPL_WELCOME(this->getServerHostName(), cl->getUserName(), cl->getNICK()));
         this->sendMsgToClient(cl->getClientFd(), RPL_YOURHOST(this->getServerHostName(), cl->getNICK()));
@@ -311,6 +299,7 @@ void Server::recieveMsg(int clientFd) {
         for (; it != arr_of_cmds.end(); ++it) {
             Command *cmd = new Command((*it));
             Client *client = this->_clients[clientFd];
+            std::cout << "msg: {" << cmd->raw_cmd << "}\n";
             // std::cout << "MSG: [" << msg << "] CMD: " << cmd->cmd << " has: " << cmd->params.size() << " params\n";
             if (client->IsClientConnected() == false) {
                 this->registerClient(client, cmd);

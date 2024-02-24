@@ -108,8 +108,29 @@ void    Command::user(Client *client, Server* servInstance) {
     if (this->params[0].find(':') == std::string::npos)
         client->setUserName(this->params[0]);
     else {
-        client->setUserName(client->getNICK());
+        std::string userName = "~" + client->getNICK();
+        client->setUserName(userName);
         if(this->raw_cmd.find(':') != std::string::npos)
             client->setRealName(this->raw_cmd.substr(this->raw_cmd.find(':')));
     }
+}
+
+/* PRIVMSG has to be sent in this format:
+    -> {:d__!~dd@5.195.225.158 PRIVMSG d___ :yea this is me}
+    -> {:nick!username@hostname PRIVMSG nick :<message>}
+*/
+void Command::privmsg(Client *senderClient, Server *servInstance) {
+    // if (isChannelName(this->params[0]) == true)
+    //     sendToChannel();
+    if (validNickName(this->params, senderClient->getClientFd(), servInstance, this->cmd) == false) {
+        return ;
+    }
+    int recieverFd = servInstance->isClientAvailable(senderClient->getClientFd(), this->params[0]);
+    if (recieverFd == 0) {
+        servInstance->sendMsgToClient(recieverFd, ERR_NOSUCHNICK(servInstance->getServerHostName(), this->params[0]));
+        return ;
+    }
+    servInstance->sendMsgToClient(recieverFd, servInstance->constructReplayMsg(senderClient, recieverFd, this, this->params[0]));
+    return ;
+
 }

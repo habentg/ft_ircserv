@@ -27,6 +27,7 @@ class Command {
         void    password(Client *client, Server* servInstance);
         bool    nickname(Client *client, Server* servInstance);
         void    user(Client *client, Server* servInstance);
+        void    privmsg(Client *senderClient, Server *servInstance);
 };
 
 

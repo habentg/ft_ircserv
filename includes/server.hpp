@@ -53,10 +53,11 @@ class Server {
         void                        sendMsgToAllClients(std::string msg);
         void                        registerClient(Client *client, Command *command);
         void                        removeClient(int clientFd);
-        int                        isClientAvailable(int clientFd, std::string nick) const;
+        int                         isClientAvailable(int clientFd, std::string nick) const;
         void                        userAuthenticationAndWelcome(Client* cl, Command *command);
         bool                        authenticateClient(Client *cl, Command *command);
         void                        doStuff(Client* client, Command *command);
+        std::string                 constructReplayMsg(Client *senderClient, int recverFd, Command *cmd, std::string recieverNick);
         class exc : public std::exception {
             public:
                 const char* what() const throw();
