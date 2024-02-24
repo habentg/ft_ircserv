@@ -18,8 +18,7 @@ Client::Client(int clientFd, struct sockaddr *clientInfo){
         this->_isAuthenticated = false;
         this->_NICK = "";
         this->_USERNAME = "";
-        this->_REALNAME = "";
-        this->_HOSTNAME = "";
+        this->_REALNAME = "42Real Name";
         this->_ipaddr = inet_ntoa(((struct sockaddr_in *)clientInfo)->sin_addr);
         this->_port = ntohs(((struct sockaddr_in *)clientInfo)->sin_port);
         this->_clientInfo = clientInfo;
@@ -63,12 +62,6 @@ int Client::getClientFd(void) const {
     return this->_clientFd;
 }
 
-std::string Client::getHostName(void) const {
-    return this->_HOSTNAME;
-}
-void Client::setHostName(std::string value) {
-    this->_HOSTNAME = value;
-}
 std::string Client::getRealName(void) const {
     return this->_REALNAME;
 }

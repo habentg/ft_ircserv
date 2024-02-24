@@ -46,6 +46,7 @@
 #define RPL_CREATED(hostname, nickname)              std::string(":" + hostname + " 003 " + nickname + " :" + hostname +" was created <human-readable date/time>\r\n")
 #define RPL_MYINFO(hostname, nickname)               std::string(":" + hostname + " 004 " + nickname + " :CLIENT SHOULD DESCOVER AVAILABLE FEATURES using RPL_ISUPPORT tokens <NO FUCKING IDEA HOW TO DO THIS ... TOMORROWS PROBLEM!>\r\n")
 #define RPL_ISUPPORT(hostname, nickname)             std::string(":" + hostname + " 005 " + nickname + " :are supported by this server <tomorrows problem>\r\n")
+#define USERLEN 15 // we will see how to advertise this to the clients
 
 /* MOTD */
 #define RPL_MOTDSTART(hostname, nickname)            std::string(":" + hostname + " 375 " + nickname + " :- " + hostname + " Message of the day - \r\n")
@@ -53,7 +54,7 @@
 #define RPL_ENDOFMOTD(hostname, nickname)            std::string(":" + hostname + " 376 " + nickname + " :" +hostname+ " End of /MOTD command.\r\n")
 
 /* PONG */
-// #define PONG(hostname, cmd)                         std::string(":" + hostname + " 464 " + nickname + " :nickname aready in use\r\n")
+#define PONG(hostname)                         std::string(":" + hostname + " :PONG\r\n")
 
 /* Server to Client Error Responses */
 #define ERR_NEEDMOREPARAMS(hostname, cmd)           std::string(":" + hostname + " 464 " + cmd + " :Not enough parameters\r\n")
@@ -69,7 +70,7 @@
 /* Error responses */
 # define INCORRECT_ARGS "Error: Incorrect Numner of arguments!!\n    Usage: ./ft_ircserv <port number <password>"
 # define INVALID_serverPort "Invalid port number. Please use a port number between 1024 and 65535."
-# define PASSWORD_TOO_SHORT "\nError: Password to short!!\n\n    Password should be at least 4 characters\n"
+# define PASSWORD_TOO_SHORT "\nError: Password to short or too long!!\n\n    Password should be at least 4 and 15 characters at most\n"
 
 
 /* Command struct/class 

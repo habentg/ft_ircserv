@@ -88,12 +88,26 @@ bool validNickName(std::vector<std::string> nick_params, int clientFd, Server* s
 bool    Command::nickname(Client *client, Server* servInstance) {
     if (validNickName(this->params, client->getClientFd(), servInstance) == false)
         return false;
-    std::string nick = lowerCaseString(this->params[0]);
-    if (servInstance->isNickNamDuplicate(client->getClientFd(), nick) == true) {
+    if (servInstance->isNickNamDuplicate(client->getClientFd(), this->params[0]) == true) {
         servInstance->sendMsgToClient(client->getClientFd(), ERR_NICKNAMEINUSE(servInstance->getServerHostName(), client->getNICK()));
         return false;
     }
     client->setNICK(this->params[0]);
     std::cout << "Client: " << client->getClientFd() << " has set his nickname to [" << client->getNICK() << "]\n";
     return true;
+}
+
+/* USER Command validation */
+void    Command::user(Client *client, Server* servInstance) {
+    if (this->params.empty()) {
+        servInstance->sendMsgToClient(client->getClientFd(), ERR_NEEDMOREPARAMS(servInstance->getServerHostName(), this->cmd));
+        return ;
+    }
+    if (this->params[0].find(':') == std::string::npos)
+        client->setUserName(this->params[0]);
+    else {
+        client->setUserName(client->getNICK());
+        if(this->raw_cmd.find(':') != std::string::npos)
+            client->setRealName(this->raw_cmd.substr(this->raw_cmd.find(':')));
+    }
 }

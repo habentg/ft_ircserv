@@ -128,7 +128,8 @@ bool    Server::isNickNamDuplicate(int clientFd, std::string nick) const {
     std::map<int, Client *>::const_iterator map_it = this->_clients.begin();
     for (; map_it != this->_clients.end(); map_it++)
     {
-        if (map_it->first != clientFd && lowerCaseString(map_it->second->getNICK()) == nick) {
+        if (map_it->first != clientFd && lowerCaseString(map_it->second->getNICK()) == lowerCaseString(nick)) {
+            std::cout << "{NICK: " << map_it->second->getNICK() << " & " << nick << " are the same/close}\n";
             return true;
         }
     }
@@ -184,8 +185,12 @@ void Server::sendMsgToClient(int clientFd, std::string msg) {
         * we should check if nick
 */
 void Server::doStuff(int clientFd, Command *command) {
-    // if (command->cmd == "PING")
-    //     this->sendMsgToClient(clientFd, );
+    if (command->cmd == "PING")
+        this->sendMsgToClient(clientFd, PONG(this->getServerHostName()));
+    // if (command->cmd == "PRIVMSG") {
+        // if (command->params.empty())
+        //     this->sendMsgToClient(clientFd, )
+    // }
     std::cout << "registered Client: [" << clientFd << "] has sent: " << command->cmd << std::endl;
 }
 
@@ -194,18 +199,10 @@ bool    Server::authenticateClient(Client *cl, Command *command) {
         command->password(cl, this);
     }
     else if (cl->getIsAuthenticated()) {
-        if (command->cmd == "NICK") {
-            // std::cout << "->-> BEF  ARE WE HERE............................\n";
+        if (command->cmd == "NICK")
             return (command->nickname(cl, this));
-            // std::cout << "AFF  ";
-        }
-        if (command->cmd == "USER") {
-            // printVector(command->params);
-            std::string realname = command->params[4].substr(command->params[3].find(':')) + command->params[4];
-            cl->setRealName(realname);
-            cl->setUserName(command->params[0]);
-            cl->setHostName(command->params[2]);
-        }
+        if (command->cmd == "USER")
+            command->user(cl, this);
     }
     else {
         // we will check if sending "password needed" is allowd!
@@ -219,7 +216,7 @@ void Server::userAuthenticationAndWelcome(Client* cl, Command *command) {
     if (authenticateClient(cl, command) == false)
         return ;
         // // send welcome message
-    if (!cl->IsClientConnected() && cl->getIsAuthenticated() && cl->getNICK() != "" && cl->getUserName() != "") {
+    if (cl->getIsAuthenticated() && cl->getUserName() != "") {
         cl->setIsregistered(true);
         this->sendMsgToClient(cl->getClientFd(), RPL_WELCOME(this->getServerHostName(), cl->getUserName(), cl->getNICK()));
         this->sendMsgToClient(cl->getClientFd(), RPL_YOURHOST(this->getServerHostName(), cl->getNICK()));

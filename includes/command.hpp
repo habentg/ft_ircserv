@@ -26,6 +26,7 @@ class Command {
         ~Command(void);
         void    password(Client *client, Server* servInstance);
         bool    nickname(Client *client, Server* servInstance);
+        void    user(Client *client, Server* servInstance);
 };
 
 #endif //!COMMAND_HPP

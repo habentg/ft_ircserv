@@ -24,7 +24,6 @@ class Client {
         std::string _NICK;
         std::string _USERNAME;
         std::string _REALNAME;
-        std::string _HOSTNAME;
         char*       _ipaddr;
         uint32_t    _port;
         unsigned int _wrongPassCount;
@@ -47,9 +46,6 @@ class Client {
         
         std::string     getUserName(void) const;
         void            setUserName(std::string value);
-        
-        std::string     getHostName(void) const;
-        void            setHostName(std::string value);
         
         std::string     getRealName(void) const;
         void            setRealName(std::string value);

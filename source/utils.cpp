@@ -23,7 +23,7 @@ double validate_input(int ac, char **av) {
         std::cerr << INVALID_serverPort << std::endl;
         return -1;
     }
-    if (std::string(av[2]).length() < 4) {
+    if (std::string(av[2]).length() < 4 || std::string(av[2]).length() > 15) {
         std::cerr << PASSWORD_TOO_SHORT << std::endl;
         return -1;
     }
@@ -94,9 +94,8 @@ void printVector(std::vector<std::string> vec) {
 }
 
 std::string lowerCaseString(std::string str) {
-    std::string lower;
     for (size_t i = 0; i < str.length(); ++i) {
-        lower[i] = std::tolower(str[i]);
+        str[i] = std::tolower(str[i]);
     }
-    return (lower);
+    return (str);
 }
