@@ -29,4 +29,7 @@ class Command {
         void    user(Client *client, Server* servInstance);
 };
 
+
+bool validNickName(std::vector<std::string> nick_params, int clientFd, Server* servInstance);
+
 #endif //!COMMAND_HPP

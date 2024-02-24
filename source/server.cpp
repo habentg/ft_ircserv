@@ -184,14 +184,25 @@ void Server::sendMsgToClient(int clientFd, std::string msg) {
         * [PRIVMSG <recipient nickname> :<message to be sent>] - is the format
         * we should check if nick
 */
-void Server::doStuff(int clientFd, Command *command) {
-    if (command->cmd == "PING")
-        this->sendMsgToClient(clientFd, PONG(this->getServerHostName()));
-    // if (command->cmd == "PRIVMSG") {
-        // if (command->params.empty())
-        //     this->sendMsgToClient(clientFd, )
-    // }
-    std::cout << "registered Client: [" << clientFd << "] has sent: " << command->cmd << std::endl;
+void Server::doStuff(Client* client, Command *command) {
+    if (command->cmd == "PING") // somehow this shit is not working, I am sending PONG replay the same way a real server is doing it ... FUCK
+        this->sendMsgToClient(client->getClientFd(), PONG(this->getServerHostName()));
+    if (command->cmd == "PRIVMSG") {
+        if (command->params.empty()) {
+            this->sendMsgToClient(client->getClientFd(), ERR_NEEDMOREPARAMS(this->getServerHostName(), command->cmd));
+            return ;
+        }
+        // if (isChannelName(command->params[0]) == true)
+        //     sendToChannel();
+        if (validNickName(command->params, client->getClientFd(), this) == false)
+            this->sendMsgToClient(client->getClientFd(), ERR_ERRONEUSNICKNAME(this->getServerHostName()));
+        else {
+            
+            this->sendMsgToClient(this->getClientFdByNick(command->params[1]), constructReplayMsg(command->params[2]));
+        }
+
+    }
+    std::cout << "registered Client: [" << client->getClientFd() << "] has sent: " << command->cmd << std::endl;
 }
 
 bool    Server::authenticateClient(Client *cl, Command *command) {
@@ -231,13 +242,13 @@ void Server::userAuthenticationAndWelcome(Client* cl, Command *command) {
     }
 }
 
-void Server::registerClient(int clientFd, Command *command) {
-    Client *client = this->_clients[clientFd];
+void Server::registerClient(Client *client, Command *command) {
+
     if (command->cmd == "CAP") {
         if (command->params[0] == "LS")
-            (this->sendMsgToClient(clientFd, CAP_LS_RESP(this->getServerHostName())));
+            (this->sendMsgToClient(client->getClientFd(), CAP_LS_RESP(this->getServerHostName())));
         else if (command->params[0] == "REQ")
-            this->sendMsgToClient(clientFd, CAP_ACK_RESP(this->getServerHostName()));
+            this->sendMsgToClient(client->getClientFd(), CAP_ACK_RESP(this->getServerHostName()));
         else if (command->params[0] == "END")
             std::cout<<"CAP End response sent\n";
     }
@@ -281,12 +292,13 @@ void Server::recieveMsg(int clientFd) {
         std::vector<std::string>::iterator it = arr_of_cmds.begin();
         for (; it != arr_of_cmds.end(); ++it) {
             Command *cmd = new Command((*it));
+            Client *client = this->_clients[clientFd];
             // std::cout << "MSG: [" << msg << "] CMD: " << cmd->cmd << " has: " << cmd->params.size() << " params\n";
-            if (this->getClient(clientFd)->IsClientConnected() == false) {
-                this->registerClient(clientFd, cmd);
+            if (client->IsClientConnected() == false) {
+                this->registerClient(client, cmd);
             }
             else
-                this->doStuff(clientFd, cmd);
+                this->doStuff(client, cmd);
             delete cmd; // we dont need the command anymore
         }
 

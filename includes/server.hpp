@@ -51,12 +51,12 @@ class Server {
         void                        saveClientINfo(int clientFd, struct sockaddr *clientInfo);
         void                        sendMsgToClient(int clientFd, std::string msg);
         void                        sendMsgToAllClients(std::string msg);
-        void                        registerClient(int clientFd, Command *command);
+        void                        registerClient(Client *client, Command *command);
         void                        removeClient(int clientFd);
         bool                        isNickNamDuplicate(int clientFd, std::string nick) const;
         void                        userAuthenticationAndWelcome(Client* cl, Command *command);
         bool                        authenticateClient(Client *cl, Command *command);
-        void                        doStuff(int clientFd, Command *command);
+        void                        doStuff(Client* client, Command *command);
         class exc : public std::exception {
             public:
                 const char* what() const throw();
