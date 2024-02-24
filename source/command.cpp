@@ -67,18 +67,20 @@ void    Command::password(Client *client, Server* servInstance) {
     Servers MAY have additional implementation-specific nickname restrictions and SHOULD avoid the use of nicknames 
         which are ambiguous with commands or command parameters where this could lead to confusion or error.
 */
-bool validNickName(std::vector<std::string> nick_params, int clientFd, Server* servInstance) {
+bool validNickName(std::vector<std::string> nick_params, int clientFd, Server* servInstance, std::string cmdName) {
     if (nick_params.empty()){
-        servInstance->sendMsgToClient(clientFd, ERR_NEEDMOREPARAMS(servInstance->getServerHostName(), "NICK"));
+        servInstance->sendMsgToClient(clientFd, ERR_NEEDMOREPARAMS(servInstance->getServerHostName(), cmdName));
         return false;
     }
     std::string nick = nick_params[0];
-    if (nick_params.size() != 1 || nick.find(',') != std::string::npos || nick.find('?') != std::string::npos || nick.find('@') != std::string::npos || \
+    if ((nick_params.size() != 1 && cmdName == "NICK") || nick.find(',') != std::string::npos || nick.find('?') != std::string::npos || nick.find('@') != std::string::npos || \
             nick.find('!') != std::string::npos || nick.find('*') != std::string::npos || nick.find('.') != std::string::npos) {
         servInstance->sendMsgToClient(clientFd, ERR_ERRONEUSNICKNAME(servInstance->getServerHostName()));
+        std::cout << "ist from 1\n";
         return false;
     }
     if (nick[0] == '$' || nick[0] == ':' || std::isdigit(nick[0])) {
+        std::cout << "ist from 2\n";
         servInstance->sendMsgToClient(clientFd, ERR_ERRONEUSNICKNAME(servInstance->getServerHostName()));
         return false;
     }
@@ -86,10 +88,10 @@ bool validNickName(std::vector<std::string> nick_params, int clientFd, Server* s
 }
 
 bool    Command::nickname(Client *client, Server* servInstance) {
-    if (validNickName(this->params, client->getClientFd(), servInstance) == false)
+    if (validNickName(this->params, client->getClientFd(), servInstance, this->cmd) == false)
         return false;
-    if (servInstance->isNickNamDuplicate(client->getClientFd(), this->params[0]) == true) {
-        servInstance->sendMsgToClient(client->getClientFd(), ERR_NICKNAMEINUSE(servInstance->getServerHostName(), client->getNICK()));
+    if (servInstance->isClientAvailable(client->getClientFd(), this->params[0]) != 0) {
+        servInstance->sendMsgToClient(client->getClientFd(), ERR_NICKNAMEINUSE(servInstance->getServerHostName(), this->params[0]));
         return false;
     }
     client->setNICK(this->params[0]);

@@ -124,16 +124,17 @@ void    Server::addToFdArray(int newfd) {
     this->getFdArray().push_back(newConFdStruct);
 }
 
-bool    Server::isNickNamDuplicate(int clientFd, std::string nick) const {
+int    Server::isClientAvailable(int clientFd, std::string nick) const {
     std::map<int, Client *>::const_iterator map_it = this->_clients.begin();
     for (; map_it != this->_clients.end(); map_it++)
     {
-        if (map_it->first != clientFd && lowerCaseString(map_it->second->getNICK()) == lowerCaseString(nick)) {
+        // if (map_it->first != clientFd && lowerCaseString(map_it->second->getNICK()) == lowerCaseString(nick)) {
+        if (map_it->first != clientFd && (map_it->second->getNICK()) == (nick)) {
             std::cout << "{NICK: " << map_it->second->getNICK() << " & " << nick << " are the same/close}\n";
-            return true;
+            return (map_it->first);
         }
     }
-    return false;
+    return 0;
 }
 
 /* ------------------------------------------------------------------------------------------ */
@@ -184,23 +185,40 @@ void Server::sendMsgToClient(int clientFd, std::string msg) {
         * [PRIVMSG <recipient nickname> :<message to be sent>] - is the format
         * we should check if nick
 */
+std::string constructReplayMsg(std::string rpl) {
+    std::string str = rpl + "\r\n";
+    return str;
+}
 void Server::doStuff(Client* client, Command *command) {
     if (command->cmd == "PING") // somehow this shit is not working, I am sending PONG replay the same way a real server is doing it ... FUCK
         this->sendMsgToClient(client->getClientFd(), PONG(this->getServerHostName()));
     if (command->cmd == "PRIVMSG") {
-        if (command->params.empty()) {
-            this->sendMsgToClient(client->getClientFd(), ERR_NEEDMOREPARAMS(this->getServerHostName(), command->cmd));
-            return ;
-        }
+        std::cout << "is we here\n";
         // if (isChannelName(command->params[0]) == true)
         //     sendToChannel();
-        if (validNickName(command->params, client->getClientFd(), this) == false)
-            this->sendMsgToClient(client->getClientFd(), ERR_ERRONEUSNICKNAME(this->getServerHostName()));
-        else {
-            
-            this->sendMsgToClient(this->getClientFdByNick(command->params[1]), constructReplayMsg(command->params[2]));
+        if (validNickName(command->params, client->getClientFd(), this, command->cmd) == false) {
+            return ;
         }
+        std::cout << "is we here --- valid\n";
+        int recieverFd = this->isClientAvailable(client->getClientFd(), command->params[0]);
+        if (recieverFd == 0) {
+            std::cout << "No such client\n";
+            return ;
+        }
+        std::cout << "is we here --- to be sent\n";
+        this->sendMsgToClient(recieverFd, constructReplayMsg(command->params[1]));
+        return ;
 
+    }
+    if (command->cmd == "JOIN") {
+        std::cout << "CHANNELL JOIN\n";
+        /* creating/joining a channel:
+            -> need a vector in the server to hold all the channel names,
+            -> each channel will have:
+                * an chanOp - the one who created it (can give to others as well)
+                * a list of all users -
+                * number of users limit
+        */
     }
     std::cout << "registered Client: [" << client->getClientFd() << "] has sent: " << command->cmd << std::endl;
 }

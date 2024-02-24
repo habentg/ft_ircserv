@@ -30,6 +30,6 @@ class Command {
 };
 
 
-bool validNickName(std::vector<std::string> nick_params, int clientFd, Server* servInstance);
+bool validNickName(std::vector<std::string> nick_params, int clientFd, Server* servInstance, std::string cmdName);
 
 #endif //!COMMAND_HPP
