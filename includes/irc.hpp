@@ -65,6 +65,8 @@
 #define ERR_ERRONEUSNICKNAME(hostname)              std::string(":" + hostname + " 432 :you have characters in your nickname that are not supported in our server\r\n")
 #define ERR_NONICKNAMEGIVEN(hostname)               std::string(":" + hostname + " 431 :you havent provided with a nickname yet\r\n")
 #define ERR_NOSUCHNICK(hostname, nickname)          std::string(":" + hostname + " 401 " + nickname + " :No such user in our server\r\n")
+#define ERR_NOTEXTTOSEND(hostname)          std::string(":" + hostname + " 412 :No text to send\r\n")
+#define ERR_REGISTER_FIRST(hostname)          std::string(":" + hostname + " 451 * :Register first\r\n")
 
 /* REPLAY */
 #define PRIVMSG_RPLY(senderNick, senderUsername, hostname, revieverNick, msg) std::string(":"+senderNick+"!"+senderUsername+"@"+hostname+" PRIVMSG "+revieverNick+" :"+msg+"\r\n")

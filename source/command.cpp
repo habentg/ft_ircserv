@@ -105,11 +105,12 @@ void    Command::user(Client *client, Server* servInstance) {
         servInstance->sendMsgToClient(client->getClientFd(), ERR_NEEDMOREPARAMS(servInstance->getServerHostName(), this->cmd));
         return ;
     }
-    if (this->params[0].find(':') == std::string::npos)
-        client->setUserName(this->params[0]);
-    else {
-        std::string userName = "~" + client->getNICK();
+    if (this->params[0].find(':') == std::string::npos) {
+        std::string userName = "~" + this->params[0];
         client->setUserName(userName);
+    }
+    else {
+        client->setUserName(client->getNICK());
         if(this->raw_cmd.find(':') != std::string::npos)
             client->setRealName(this->raw_cmd.substr(this->raw_cmd.find(':')));
     }
@@ -120,17 +121,24 @@ void    Command::user(Client *client, Server* servInstance) {
     -> {:nick!username@hostname PRIVMSG nick :<message>}
 */
 void Command::privmsg(Client *senderClient, Server *servInstance) {
-    // if (isChannelName(this->params[0]) == true)
-    //     sendToChannel();
-    if (validNickName(this->params, senderClient->getClientFd(), servInstance, this->cmd) == false) {
+    if (this->raw_cmd.find(':') == std::string::npos) {
+        servInstance->sendMsgToClient(senderClient->getClientFd(), ERR_NOTEXTTOSEND(servInstance->getServerHostName()));
         return ;
     }
+    // if (isChannelName(this->params[0]) == true)
+    //     sendToChannel();
+    // if (validNickName(this->params, senderClient->getClientFd(), servInstance, this->cmd) == false) {
+    //     return ;
+    // }
     int recieverFd = servInstance->isClientAvailable(senderClient->getClientFd(), this->params[0]);
     if (recieverFd == 0) {
         servInstance->sendMsgToClient(recieverFd, ERR_NOSUCHNICK(servInstance->getServerHostName(), this->params[0]));
         return ;
     }
     servInstance->sendMsgToClient(recieverFd, servInstance->constructReplayMsg(senderClient, recieverFd, this, this->params[0]));
-    return ;
+}
 
+
+void    Command::join(Client *senderClient, Server *servInstance) {
+    return ;
 }

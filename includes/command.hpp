@@ -28,6 +28,7 @@ class Command {
         bool    nickname(Client *client, Server* servInstance);
         void    user(Client *client, Server* servInstance);
         void    privmsg(Client *senderClient, Server *servInstance);
+        void    join(Client *senderClient, Server *servInstance);
 };
 
 

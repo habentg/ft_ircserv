@@ -222,8 +222,8 @@ bool    Server::authenticateClient(Client *cl, Command *command) {
             command->user(cl, this);
     }
     else {
-        // we will check if sending "password needed" is allowd!
-        std::cout << "["<< command->cmd <<"]: You have to be authenitcated to continue ...\n";
+        this->sendMsgToClient(cl->getClientFd(), ERR_REGISTER_FIRST(this->getServerHostName()));
+        return false;
     }
     return true;
 }
