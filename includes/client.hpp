@@ -33,7 +33,7 @@ class Client {
         Client(int clientFd, struct sockaddr *clientInfo);
         ~Client(void);
         // getters and setters
-        int             getClientFd(void) const;
+        int             getFd(void) const;
         
         bool            IsClientConnected(void) const;
         void            setIsregistered(bool value);
@@ -41,7 +41,7 @@ class Client {
         bool            getIsAuthenticated(void) const;
         void            setIsAuthenticated(bool value);
         
-        std::string     getNICK(void) const;
+        std::string     getNickName(void) const;
         void            setNICK(std::string value);
         
         std::string     getUserName(void) const;

@@ -25,24 +25,19 @@ Command::~Command(void) {
 }
 
 /* PASS */
-void    Command::password(Client *client, Server* servInstance) {
+void    Command::password(Client *client, Server* serverInstance) {
     if (client->getIsAuthenticated()) {
-        servInstance->sendMsgToClient(client->getClientFd(), ERR_ALREADYREGISTERED(servInstance->getServerHostName()));
+        serverInstance->sendMsgToClient(client->getFd(), ERR_ALREADYREGISTERED(serverInstance->getServerHostName()));
         return ;
     }
-    if (this->params.empty()) {
-        servInstance->sendMsgToClient(client->getClientFd(), ERR_NEEDMOREPARAMS(servInstance->getServerHostName(), this->cmd));
-        return ;
-    }
-    if (this->params[0] == servInstance->getPassword()) {
+    if (this->params[0] == serverInstance->getPassword()) {
         client->setIsAuthenticated(true);
-        std::cout << "Client: [" << client->getClientFd() << "] has authenticated\n";
+        std::cout << "Client: [" << client->getFd() << "] has been authenticated\n";
     }
     else {
-        servInstance->sendMsgToClient(client->getClientFd(), ERR_PASSWDMISMATCH(servInstance->getServerHostName()));
+        serverInstance->sendMsgToClient(client->getFd(), ERR_PASSWDMISMATCH(serverInstance->getServerHostName()));
         if (client->getWrongPassCount() == 2) {
-            std::cout << "Client: [" << client->getClientFd() << "] got removed because of 3 incorrect password attempts\n";
-            servInstance->removeClient(client->getClientFd());
+            serverInstance->removeClient(client->getFd());
             return ;
         } else
             client->setWrongPassCount(client->getWrongPassCount() + 1);
@@ -67,50 +62,48 @@ void    Command::password(Client *client, Server* servInstance) {
     Servers MAY have additional implementation-specific nickname restrictions and SHOULD avoid the use of nicknames 
         which are ambiguous with commands or command parameters where this could lead to confusion or error.
 */
-bool validNickName(std::vector<std::string> nick_params, int clientFd, Server* servInstance, std::string cmdName) {
-    if (nick_params.empty()){
-        servInstance->sendMsgToClient(clientFd, ERR_NEEDMOREPARAMS(servInstance->getServerHostName(), cmdName));
-        return false;
-    }
+size_t validNickName(std::vector<std::string> nick_params, int clientFd, Server* serverInstance, std::string cmdName) {
     std::string nick = nick_params[0];
-    if ((nick_params.size() != 1 && cmdName == "NICK") || nick.find(',') != std::string::npos || nick.find('?') != std::string::npos || nick.find('@') != std::string::npos || \
-            nick.find('!') != std::string::npos || nick.find('*') != std::string::npos || nick.find('.') != std::string::npos) {
-        servInstance->sendMsgToClient(clientFd, ERR_ERRONEUSNICKNAME(servInstance->getServerHostName()));
-        std::cout << "ist from 1\n";
-        return false;
+    if (std::isdigit(nick[0]) || nick[0] == ':' || nick[0] == '#') {
+        serverInstance->sendMsgToClient(clientFd, ERR_ERRONEUSNICKNAME(serverInstance->getServerHostName()));
+        return 0;
     }
-    if (nick[0] == '$' || nick[0] == ':' || std::isdigit(nick[0])) {
-        std::cout << "ist from 2\n";
-        servInstance->sendMsgToClient(clientFd, ERR_ERRONEUSNICKNAME(servInstance->getServerHostName()));
-        return false;
+    size_t  valid_index = 0;
+    if ((valid_index = nick.find(',')) != std::string::npos || (valid_index = nick.find('?')) != std::string::npos || \
+        (valid_index = nick.find('@')) != std::string::npos || (valid_index = nick.find('!')) != std::string::npos || \
+        (valid_index = nick.find('*')) != std::string::npos || (valid_index = nick.find('.')) != std::string::npos || \
+        (valid_index = nick.find('$')) != std::string::npos) {
+            if (valid_index == 0) {
+                serverInstance->sendMsgToClient(clientFd, ERR_ERRONEUSNICKNAME(serverInstance->getServerHostName()));
+                return 0;
+            }
+        return valid_index;
     }
-    return true;
+    return -1;
 }
 
-bool    Command::nickname(Client *client, Server* servInstance) {
-    if (validNickName(this->params, client->getClientFd(), servInstance, this->cmd) == false)
+bool    Command::nickname(Client *client, Server* serverInstance) {
+    size_t validCharIndex = validNickName(this->params, client->getFd(), serverInstance, this->cmd);
+    if (validCharIndex == 0)
         return false;
-    if (servInstance->isClientAvailable(client->getClientFd(), this->params[0]) != 0) {
-        servInstance->sendMsgToClient(client->getClientFd(), ERR_NICKNAMEINUSE(servInstance->getServerHostName(), this->params[0]));
+    std::string nick_name = this->params[0].substr(0, validCharIndex);
+    if (serverInstance->isClientAvailable(client->getFd(), nick_name) != 0) {
+        serverInstance->sendMsgToClient(client->getFd(), ERR_NICKNAMEINUSE(serverInstance->getServerHostName(), nick_name));
         return false;
     }
-    client->setNICK(this->params[0]);
-    std::cout << "Client: " << client->getClientFd() << " has set his nickname to [" << client->getNICK() << "]\n";
+    client->setNICK(nick_name);
+    std::cout << "Client: " << client->getFd() << " has set his nickname to [" << client->getNickName() << "]\n";
     return true;
 }
 
 /* USER Command validation */
-void    Command::user(Client *client, Server* servInstance) {
-    if (this->params.empty()) {
-        servInstance->sendMsgToClient(client->getClientFd(), ERR_NEEDMOREPARAMS(servInstance->getServerHostName(), this->cmd));
-        return ;
-    }
+void    Command::user(Client *client, Server* serverInstance) {
     if (this->params[0].find(':') == std::string::npos) {
         std::string userName = "~" + this->params[0];
         client->setUserName(userName);
     }
     else {
-        client->setUserName(client->getNICK());
+        client->setUserName(client->getNickName());
         if(this->raw_cmd.find(':') != std::string::npos)
             client->setRealName(this->raw_cmd.substr(this->raw_cmd.find(':')));
     }
@@ -120,25 +113,45 @@ void    Command::user(Client *client, Server* servInstance) {
     -> {:d__!~dd@5.195.225.158 PRIVMSG d___ :yea this is me}
     -> {:nick!username@hostname PRIVMSG nick :<message>}
 */
-void Command::privmsg(Client *senderClient, Server *servInstance) {
+void Command::privmsg(Client *senderClient, Server *serverInstance) {
     if (this->raw_cmd.find(':') == std::string::npos) {
-        servInstance->sendMsgToClient(senderClient->getClientFd(), ERR_NOTEXTTOSEND(servInstance->getServerHostName()));
+        serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOTEXTTOSEND(serverInstance->getServerHostName()));
         return ;
     }
     // if (isChannelName(this->params[0]) == true)
     //     sendToChannel();
-    // if (validNickName(this->params, senderClient->getClientFd(), servInstance, this->cmd) == false) {
-    //     return ;
-    // }
-    int recieverFd = servInstance->isClientAvailable(senderClient->getClientFd(), this->params[0]);
+    int recieverFd = serverInstance->isClientAvailable(senderClient->getFd(), this->params[0]);
     if (recieverFd == 0) {
-        servInstance->sendMsgToClient(recieverFd, ERR_NOSUCHNICK(servInstance->getServerHostName(), this->params[0]));
+        serverInstance->sendMsgToClient(recieverFd, ERR_NOSUCHNICK(serverInstance->getServerHostName(), this->params[0]));
         return ;
     }
-    servInstance->sendMsgToClient(recieverFd, servInstance->constructReplayMsg(senderClient, recieverFd, this, this->params[0]));
+    serverInstance->sendMsgToClient(recieverFd, serverInstance->constructReplayMsg(senderClient, this, this->params[0]));
 }
 
 
-void    Command::join(Client *senderClient, Server *servInstance) {
-    return ;
+void    Command::join(Client *client, Server *serverInstance) {
+    std::string validChanName;
+    if (this->params[0][0] != '#')
+        validChanName = std::string("#" + this->params[0]);
+    else 
+        validChanName = this->params[0];
+    // if that channel doesnt exist:
+        // create channel, and add dude as an OP
+    std::string channelKey = "";
+    if (this->params.size() >= 2)
+        channelKey = this->params[1];
+    if (serverInstance->numberOfChannels() == 0 || serverInstance->doesChanExist(validChanName) == false)
+    {
+        serverInstance->createChannel(validChanName, channelKey, client);
+        std::cout << "######> we have : " << serverInstance->numberOfChannels() << "CHANNELS#########\n";
+        return ;
+    }
+    // if that channel exists:
+        // add him, if he is not already there
+    Channel *chann = serverInstance->getChanByName(validChanName);
+    std::cout << "===> chann users: " << chann->getNumOfChanMembers() << "\n";
+    if (chann->getChanKey() != channelKey)
+        std::cout << "channel key mismatch\n";
+    chann->addMember(client->getNickName());
+    std::cout << "===> chann users: " << chann->getNumOfChanMembers() << "\n";
 }

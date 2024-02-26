@@ -56,11 +56,29 @@
         I - set/remove an invitation mask to automatically override
             the invite-only flag;
 */
+
+class Client;
+class Command;
+class Server;
+
 class Channel {
     private:
-        std::string         _chanName;
-        unsigned int        _numOfMembers;
-        std::vector<char>   chanModes;
+        std::string             _chanName;
+        std::string             _chanKey;
+        std::string             _creator;
+        std::set<std::string>   _members;
+        std::set<std::string>   _operators;
+        std::set<char>          _chanModes;
     public:
+        Channel(std::string chanName, std::string key, Client *creator);
+        ~Channel();
+        // members
+        size_t          getNumOfChanMembers(void) const;
+        std::string     getChannelName(void) const;
+        void            addMember(std::string clientNick);
+        void            deleteMember(std::string clientNick);
+        bool            doesClientAlreadyAMember(std::string clientNick);
+        std::string     getChanKey(void) const;
+        void            setChanKey(std::string newKey);
 };
 #endif // !CHANNEL_HPP

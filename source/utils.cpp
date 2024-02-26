@@ -30,22 +30,6 @@ double validate_input(int ac, char **av) {
     return pNumberDouble;
 }
 
-std::vector<std::string> newline_split(std::string& str) {
-    std::vector<std::string> arr;
-    std::string::size_type start = 0;
-    std::string::size_type end = 0;
-    
-    while ((end = str.find(13, start)) != std::string::npos) {
-        arr.push_back(str.substr(start, end - start));
-        start = end + 2; // Skip the newline character
-    }
-    if (start < str.length()) {
-        arr.push_back(str.substr(start));
-    }
-    
-    return arr;
-}
-
 std::string trim(std::string& str) {
     int len = str.length();
     int i = 0;
@@ -85,7 +69,7 @@ std::vector<std::string> split(std::string& str, char delimiter) {
 void printVector(std::vector<std::string> vec) {
     std::cout << "[";
     std::vector<std::string>::iterator it = vec.begin();
-    for(; it != vec.end(); ++it) {
+    for (; it != vec.end(); ++it) {
         if (it != vec.begin())
             std::cout << ", ";
         std::cout << *it;

@@ -24,14 +24,14 @@ class Command {
         std::string raw_cmd;
         Command(std::string rcved_cmd);
         ~Command(void);
-        void    password(Client *client, Server* servInstance);
-        bool    nickname(Client *client, Server* servInstance);
-        void    user(Client *client, Server* servInstance);
-        void    privmsg(Client *senderClient, Server *servInstance);
-        void    join(Client *senderClient, Server *servInstance);
+        void    password(Client *client, Server* serverInstance);
+        bool    nickname(Client *client, Server* serverInstance);
+        void    user(Client *client, Server* serverInstance);
+        void    privmsg(Client *senderClient, Server *serverInstance);
+        void    join(Client *senderClient, Server *serverInstance);
 };
 
 
-bool validNickName(std::vector<std::string> nick_params, int clientFd, Server* servInstance, std::string cmdName);
+size_t validNickName(std::vector<std::string> nick_params, int clientFd, Server* serverInstance, std::string cmdName);
 
 #endif //!COMMAND_HPP

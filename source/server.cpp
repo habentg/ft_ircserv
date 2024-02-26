@@ -34,6 +34,9 @@ Server::~Server(void) {
     std::map<int, Client *>::iterator it = this->_clients.begin();
     for (; it != this->_clients.end(); it++)
         delete it->second;
+    std::map<std::string, Channel *>::iterator ch_it = this->_channels.begin();
+    for (; ch_it != this->_channels.end(); ch_it++)
+        delete ch_it->second;
     std::cout << "Server Destructor Called!";
 }
 /* ------------------------------------------------------------------------------------------ */
@@ -67,6 +70,15 @@ std::string Server::getServerHostName(void) const {
 
 size_t    Server::getNumberOfClients(void) const {
     return this->_clients.size();
+}
+
+Client*   Server::getClientByNick(std::string nick) {
+    std::map<int, Client *>::iterator it = this->_clients.begin();
+    for(; it != this->_clients.begin(); ++it) {
+        if ((*it).second->getNickName() == nick)
+            return ((*it).second);
+    }
+    return (NULL);
 }
 
 /* ------------------------------------------------------------------------------------------ */
@@ -128,8 +140,8 @@ int    Server::isClientAvailable(int clientFd, std::string nick) const {
     std::map<int, Client *>::const_iterator map_it = this->_clients.begin();
     for (; map_it != this->_clients.end(); map_it++)
     {
-        // if (map_it->first != clientFd && lowerCaseString(map_it->second->getNICK()) == lowerCaseString(nick)) {
-        if (map_it->first != clientFd && (map_it->second->getNICK()) == (nick)) {
+        // if (map_it->first != clientFd && lowerCaseString(map_it->second->getNickName()) == lowerCaseString(nick)) {
+        if (map_it->first != clientFd && (map_it->second->getNickName()) == (nick)) {
             return (map_it->first);
         }
     }
@@ -184,31 +196,10 @@ void Server::sendMsgToClient(int clientFd, std::string msg) {
         * [PRIVMSG <recipient nickname> :<message to be sent>] - is the format
         * we should check if nick
 */
-std::string Server::constructReplayMsg(Client *senderClient, int recverFd, Command *cmd, std::string recieverNick) {
+std::string Server::constructReplayMsg(Client *senderClient, Command *cmd, std::string recieverNick) {
     std::string msg = cmd->raw_cmd.substr(cmd->raw_cmd.find(':') + 1);
-    std::string rply = PRIVMSG_RPLY(senderClient->getNICK(), senderClient->getUserName(), this->getServerHostName(), recieverNick, msg);
+    std::string rply = PRIVMSG_RPLY(senderClient->getNickName(), senderClient->getUserName(), this->getServerHostName(), recieverNick, msg);
     return rply;
-}
-void Server::doStuff(Client* client, Command *command) {
-    if (command->cmd == "PING") // somehow this shit is not working, I am sending PONG replay the same way a real server is doing it ... FUCK
-        this->sendMsgToClient(client->getClientFd(), PONG(this->getServerHostName()));
-    if (command->cmd == "PRIVMSG") {
-        command->privmsg(client, this);
-    }
-    if (command->cmd == "JOIN") {
-        std::cout << "CHANNELL JOIN\n";
-        /* creating/joining a channel:
-            -> need a vector in the server to hold all the channel names,
-            -> each channel will have:
-                * an chanOp - the one who created it (can give to others as well)
-                * a list of all users -
-                * number of users limit
-        */
-    }
-    if (command->cmd == "WHOIS") {
-        std::cout << "we will replay with the information of the nickname\n";
-    }
-    std::cout << "registered Client: [" << client->getClientFd() << "] has sent: " << command->cmd << std::endl;
 }
 
 bool    Server::authenticateClient(Client *cl, Command *command) {
@@ -222,29 +213,33 @@ bool    Server::authenticateClient(Client *cl, Command *command) {
             command->user(cl, this);
     }
     else {
-        this->sendMsgToClient(cl->getClientFd(), ERR_REGISTER_FIRST(this->getServerHostName()));
+        this->sendMsgToClient(cl->getFd(), ERR_REGISTER_FIRST(this->getServerHostName()));
         return false;
     }
     return true;
 }
 
-void Server::userAuthenticationAndWelcome(Client* cl, Command *command) {
+void Server::userAuthenticationAndWelcome(Client* client, Command *command) {
     // authenticate
-    if (authenticateClient(cl, command) == false)
+    if (authenticateClient(client, command) == false)
         return ;
         // // send welcome message
-    if (cl->getIsAuthenticated() && cl->getUserName() != "" && cl->getNICK() != "") {
-        cl->setIsregistered(true);
-        this->sendMsgToClient(cl->getClientFd(), RPL_WELCOME(this->getServerHostName(), cl->getUserName(), cl->getNICK()));
-        this->sendMsgToClient(cl->getClientFd(), RPL_YOURHOST(this->getServerHostName(), cl->getNICK()));
-        this->sendMsgToClient(cl->getClientFd(), RPL_CREATED(this->getServerHostName(), cl->getNICK()));
-        this->sendMsgToClient(cl->getClientFd(), RPL_MYINFO(this->getServerHostName(), cl->getNICK()));
-        this->sendMsgToClient(cl->getClientFd(), RPL_ISUPPORT(this->getServerHostName(), cl->getNICK()));
+    if (client->getIsAuthenticated() && client->getUserName() != "" && client->getNickName() != "") {
+        client->setIsregistered(true);
+        this->sendMsgToClient(client->getFd(), RPL_WELCOME(this->getServerHostName(), client->getUserName(), client->getNickName()));
+        this->sendMsgToClient(client->getFd(), RPL_YOURHOST(this->getServerHostName(), client->getNickName()));
+        this->sendMsgToClient(client->getFd(), RPL_CREATED(this->getServerHostName(), client->getNickName()));
+        this->sendMsgToClient(client->getFd(), RPL_MYINFO(this->getServerHostName(), client->getNickName()));
+        this->sendMsgToClient(client->getFd(), RPL_ISUPPORT(this->getServerHostName(), client->getNickName()));
         /* MOTD */
-        this->sendMsgToClient(cl->getClientFd(), RPL_MOTDSTART(this->getServerHostName(), cl->getNICK()));
-        this->sendMsgToClient(cl->getClientFd(), RPL_MOTD(this->getServerHostName(), cl->getNICK()));
-        this->sendMsgToClient(cl->getClientFd(), RPL_ENDOFMOTD(this->getServerHostName(), cl->getNICK()));
-        std::cout << "Client: " << cl->getClientFd() << " is Connected!!\n";
+        this->sendMsgToClient(client->getFd(), RPL_MOTDSTART(this->getServerHostName(), client->getNickName()));
+        this->sendMsgToClient(client->getFd(), RPL_MOTD(this->getServerHostName(), client->getNickName()));
+        this->sendMsgToClient(client->getFd(), RPL_ENDOFMOTD(this->getServerHostName(), client->getNickName()));
+        // if there is no serverOp, lets give him the honor
+        if (this->_serverOperators.size() == 0)
+            this->_serverOperators.insert("@%" + client->getNickName());
+        std::cout << "//////server Operator is: [" << *(this->_serverOperators.begin()) << "]//////\n";
+        std::cout << "Client: " << client->getFd() << " is Connected!!\n";
     }
 }
 
@@ -252,11 +247,9 @@ void Server::registerClient(Client *client, Command *command) {
 
     if (command->cmd == "CAP") {
         if (command->params[0] == "LS")
-            (this->sendMsgToClient(client->getClientFd(), CAP_LS_RESP(this->getServerHostName())));
+            this->sendMsgToClient(client->getFd(), CAP_LS_RESP(this->getServerHostName()));
         else if (command->params[0] == "REQ")
-            this->sendMsgToClient(client->getClientFd(), CAP_ACK_RESP(this->getServerHostName()));
-        else if (command->params[0] == "END")
-            std::cout<<"CAP End response sent\n";
+            this->sendMsgToClient(client->getFd(), CAP_ACK_RESP(this->getServerHostName()));
     }
     else {
         this->userAuthenticationAndWelcome(client, command);
@@ -276,6 +269,68 @@ void Server::removeClient(int clientFd) {
     }
     close(clientFd);
 }
+
+/* ================================================================================================================== */
+/*                                      Channel related Operations                                                    */
+/* ================================================================================================================== */
+
+void    Server::createChannel(std::string chanName, std::string key, Client *creator) {
+    Channel* newChan = new Channel(chanName, key, creator);
+    this->_channels.insert(std::make_pair(chanName, newChan));
+}
+
+bool      Server::doesChanExist(std::string chanName) {
+    std::map<std::string, Channel *>::iterator it = this->_channels.lower_bound(chanName);
+    if ((*it).first != chanName)
+        return false;
+    return (true);
+}
+Channel   *Server::getChanByName(std::string chanName) {
+    std::map<std::string, Channel *>::iterator it = this->_channels.lower_bound(chanName);
+    return ((*it).second);
+}
+
+/* ================================================================================================================== */
+/*                                                  DO STUFF                                                          */
+/* ================================================================================================================== */
+void Server::doStuff(Client* client, Command *command) {
+    if (command->cmd == "PING")
+        this->sendMsgToClient(client->getFd(), PONG(this->getServerHostName()));
+    std::cout << "Full-msg: {" << command->raw_cmd << "}\n";
+    if (command->cmd == "PRIVMSG") {
+        command->privmsg(client, this);
+    }
+    /* Channel and channel related features --- big job */
+    if (command->cmd == "JOIN") {
+        std::cout << "CHANNELL JOIN\n";
+        command->join(client, this);
+        std::cout << "Channel joined\n";
+    }
+    /* Not mandatory Commands */
+    if (command->cmd == "WHOIS") {
+        Client *whoClient = this->getClientByNick(command->params[0]);
+        if (whoClient == NULL) {
+            std::cout << "+++++++++++++++++++++++did we return\n";
+            return ;
+        }
+        // [euroserv.fr.quakenet.org 311 tesfa_ tesfa ~dd 5.195.225.158 * :H H]
+        // [<hostname> 311 <requesterNick> <nick> <username> <ipadd> * :<real name>]
+        std::string rpl_who = ":"+this->getServerHostName()+" 311 "+client->getNickName()+" "+whoClient->getNickName()+" "+whoClient->getUserName()+" "+whoClient->getIpAddr()+" * :"+whoClient->getRealName()+"\r\n";
+        this->sendMsgToClient(client->getFd(), rpl_who);
+    }
+    if (command->cmd == "kill") {
+        std::string potencialServerOp = "@%" + client->getNickName();
+        if (*(this->_serverOperators.lower_bound(potencialServerOp)) != potencialServerOp)
+            this->sendMsgToClient(client->getFd(), ERR_NOPRIVILEGES(this->getServerHostName(), client->getNickName()));
+        else {
+            // Client *clToBeKilled = this->getClientByNick(command->params[0]);
+            // this->removeClient(client->getFd());
+            // we gonna remove a client From everywhere that he is involved in!!
+        }
+    }
+}
+
+
 void Server::recieveMsg(int clientFd) {
     char buffer[1024];
     int buffer_size = sizeof(buffer);
@@ -286,7 +341,7 @@ void Server::recieveMsg(int clientFd) {
         throw std::runtime_error("Error: Receiving message from client");
     else if (bytes_received == 0)
         return ;
-    buffer[bytes_received] = '\0'; // Null-terminate the received data
+    buffer[bytes_received] = '\0'; // Null-terminate the received data coz recv() doesnt 
     try
     {
         /* command construction */
@@ -297,19 +352,22 @@ void Server::recieveMsg(int clientFd) {
         std::vector<std::string> arr_of_cmds = split(msg, '\0');
         std::vector<std::string>::iterator it = arr_of_cmds.begin();
         for (; it != arr_of_cmds.end(); ++it) {
-            Command *cmd = new Command((*it));
+            Command *command = new Command((*it));
             Client *client = this->_clients[clientFd];
-            std::cout << "msg: {" << cmd->raw_cmd << "}\n";
-            // std::cout << "MSG: [" << msg << "] CMD: " << cmd->cmd << " has: " << cmd->params.size() << " params\n";
+
+            // so far all the commands I know has to have at least one parameter!
+            if (command->params.empty())
+            {
+                this->sendMsgToClient(client->getFd(), ERR_NEEDMOREPARAMS(this->getServerHostName(), command->cmd));
+                return ;
+            }
             if (client->IsClientConnected() == false) {
-                this->registerClient(client, cmd);
+                this->registerClient(client, command);
             }
             else
-                this->doStuff(client, cmd);
-            delete cmd; // we dont need the command anymore
+                this->doStuff(client, command);
+            delete command; // we dont need the command anymore
         }
-
-        /* NOTE: server is desconnecting after "NO PONG in 301 seconds ... think about it"*/
     }
     catch(const std::exception& e)
     {

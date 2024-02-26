@@ -19,16 +19,16 @@ CXXFLAGS	= -Wall -Werror -Wextra -std=c++98
 RM 			= rm -rf
 
 # Source files:
-SRC = source/server.cpp source/utils.cpp source/channel.cpp source/client.cpp source/main.cpp source/command.cpp
+SRC = $(addprefix source/, server.cpp utils.cpp channel.cpp client.cpp main.cpp command.cpp)
 
 # Object files directory:
 OBJ = obj
 
 # Object files:
-OBJ_FILES = $(addprefix $(OBJ)/, $(SRC:.cpp=.o))
+OBJ_FILES = $(patsubst %.cpp, $(OBJ)/%.o, $(notdir $(SRC)))
 
 # Rule for generating object files:
-$(OBJ)/%.o: %.cpp
+$(OBJ)/%.o: source/%.cpp
 	@mkdir -p $(dir $@)
 	@echo "	~ Making object file [$(notdir $@)] from source file {$(notdir $<)} ...\n"
 	@$(CXX) $(FLAGS) -c $< -o $@
@@ -43,7 +43,7 @@ $(NAME): $(OBJ_FILES)
 	@echo "Compilation successfull. Enjoy"
 
 # Rule for cleaning object files:
-clean: $(OBJ)
+clean:
 	@echo "Removing Objects"
 	$(RM) $(OBJ)
 

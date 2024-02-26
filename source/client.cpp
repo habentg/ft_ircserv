@@ -44,7 +44,7 @@ void Client::setIsregistered(bool value) {
     this->_isConnected = value;
 }
 
-std::string Client::getNICK(void) const {
+std::string Client::getNickName(void) const {
     return this->_NICK;
 }
 void Client::setNICK(std::string value) {
@@ -58,7 +58,7 @@ void Client::setUserName(std::string value) {
     this->_USERNAME = value;
 }
 
-int Client::getClientFd(void) const {
+int Client::getFd(void) const {
     return this->_clientFd;
 }
 
