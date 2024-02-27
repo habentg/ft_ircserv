@@ -88,11 +88,12 @@ bool    Command::nickname(Client *client, Server* serverInstance) {
         return false;
     std::string nick_name = this->params[0].substr(0, validCharIndex);
     if (serverInstance->isClientAvailable(client->getFd(), nick_name) != 0) {
+        std::cout << "nick in use\n";
         serverInstance->sendMsgToClient(client->getFd(), ERR_NICKNAMEINUSE(serverInstance->getServerHostName(), nick_name));
         return false;
     }
     client->setNICK(nick_name);
-    std::cout << "Client: " << client->getFd() << " has set his nickname to [" << client->getNickName() << "]\n";
+    std::cout << "nick set to: " << client->getNickName() << "\n";
     return true;
 }
 
@@ -118,40 +119,97 @@ void Command::privmsg(Client *senderClient, Server *serverInstance) {
         serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOTEXTTOSEND(serverInstance->getServerHostName()));
         return ;
     }
-    // if (isChannelName(this->params[0]) == true)
-    //     sendToChannel();
+    if (this->params[0][0] == '#') {
+        Channel *chan = serverInstance->getChanByName(this->params[0]);
+        if (chan == NULL) {
+            std::cout << "no such channel exists!\n";
+            return ;
+        }
+        std::string sender = chan->isClientaMember(senderClient->getNickName());
+        if (sender == "") {
+            std::cout << "{"<< senderClient->getNickName() << "} lllllllll!\n";
+            std::cout << "{"<< sender << "} is not member of this channel!\n";
+            return ;
+        }
+        std::cout << "----------------------------so ... we here\n";
+        serverInstance->sendMessageToChan(chan, this, senderClient, sender);
+        std::cout << " ----------------------------after sending\n";
+        return ;
+    }
     int recieverFd = serverInstance->isClientAvailable(senderClient->getFd(), this->params[0]);
     if (recieverFd == 0) {
         serverInstance->sendMsgToClient(recieverFd, ERR_NOSUCHNICK(serverInstance->getServerHostName(), this->params[0]));
         return ;
     }
-    serverInstance->sendMsgToClient(recieverFd, serverInstance->constructReplayMsg(senderClient, this, this->params[0]));
+    serverInstance->sendMsgToClient(recieverFd, serverInstance->constructReplayMsg(senderClient->getNickName(), senderClient, this, this->params[0]));
 }
 
+/* Channel naming:
+    >> Apart from the requirement of the first character being a valid channel type prefix character;
+        the only restriction on a channel name is that it may not contain any spaces (' ', 0x20),
+        a control G / BELL ('^G', 0x07), or a comma (',', 0x2C) (which is used as a list item separator by the protocol).
+*/
 
 void    Command::join(Client *client, Server *serverInstance) {
-    std::string validChanName;
-    if (this->params[0][0] != '#')
-        validChanName = std::string("#" + this->params[0]);
-    else 
-        validChanName = this->params[0];
+    if (this->params.size() != 1 || this->params[0][0] != '#' || this->params[0].find(',') != std::string::npos || this->params[0].find(7) != std::string::npos) {
+        // incase of a channel name having a space, we can reconstruct the "name" but I am lazy now!
+        //{:adrift.sg.quakenet.org 403 tesfa #fhfjk :No such channel}
+        serverInstance->sendMsgToClient(client->getFd(), ERR_BADCHANMASK(serverInstance->getServerHostName(), client->getNickName()));
+        std::cout << "send error to client\n";
+        return ;
+    }
+    std::string validChanName = this->params[0];
     // if that channel doesnt exist:
         // create channel, and add dude as an OP
-    std::string channelKey = "";
-    if (this->params.size() >= 2)
-        channelKey = this->params[1];
     if (serverInstance->numberOfChannels() == 0 || serverInstance->doesChanExist(validChanName) == false)
     {
-        serverInstance->createChannel(validChanName, channelKey, client);
-        std::cout << "######> we have : " << serverInstance->numberOfChannels() << "CHANNELS#########\n";
+        serverInstance->createChannel(validChanName, client);
         return ;
     }
     // if that channel exists:
         // add him, if he is not already there
     Channel *chann = serverInstance->getChanByName(validChanName);
-    std::cout << "===> chann users: " << chann->getNumOfChanMembers() << "\n";
-    if (chann->getChanKey() != channelKey)
-        std::cout << "channel key mismatch\n";
     chann->addMember(client->getNickName());
-    std::cout << "===> chann users: " << chann->getNumOfChanMembers() << "\n";
+    chann->insertToMemberFdMap(client->getNickName(), client->getFd());
+}
+
+/*
+    Command: KICK
+    Parameters: <channel> <user> *( "," <user> ) [<comment>]
+
+    recieved format: {KICK #42 tesfa_ :he is real bad man}
+ */
+void    Command::kick(Client *senderClient, Server *serverInstance) {
+    // check if channel exists; if not, send error and return!
+    std::cout << "suiiiiiiiiiiiiiiiiiiiii\n";
+    Channel *chan = serverInstance->getChanByName(this->params[0]);
+    if (chan == NULL) {
+        std::cout << "channel: [" << this->params[0] << "] doesnt exist!\n";
+        return ;
+    }
+    std::cout << "suiiiiiiiiiiiiiiiiiiiii\n";
+    // check if "kicker" is a chanOp, if not send error and return
+    std::string chanOp = chan->isClientChanOp(senderClient->getNickName());
+    if (chanOp == "") {
+        std::cout << "user: [" << senderClient->getNickName() << "] is not an OP!\n";
+        return ;
+    }
+    std::cout << "suiiiiiiiiiiiiiiiiiiiii\n";
+    // check if the user exists in said channel, if not send error and return
+    std::string victim = chan->isClientaMember(senderClient->getNickName());
+    if (victim == "") {
+        std::cout << "user: [" << senderClient->getNickName() << "] is not in channel!\n";
+        return ;
+    }
+    std::cout << "suiiiiiiiiiiiiiiiiiiiii\n";
+    // remove him, send a message on why he is being kicked-out!
+    std::cout << " >>>> set to remove: users before kick: [" << chan->getNumOfChanMembers() << "]\n";
+    // send a notice (with reason) that he is being kicked out from a channel
+    /*
+        [:WiZ!jto@tolsun.oulu.fi KICK #Finnish John]
+        [:{ChanOp}!{username}@{hostname} KICK {chanName} victimNickName]
+            -> KICK message on channel #Finnish from WiZ to remove John from channel
+    */
+    senderClient->removeClientFromChan(victim, serverInstance, chan);
+    std::cout << " >>>> users kick: [" << chan->getNumOfChanMembers() << "]\n";
 }

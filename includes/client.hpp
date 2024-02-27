@@ -15,6 +15,9 @@
 
 #include "irc.hpp"
 
+class Server;
+class Channel;
+
 class Client {
     private:
         
@@ -54,6 +57,9 @@ class Client {
         
         unsigned int    getWrongPassCount(void) const;
         void            setWrongPassCount(unsigned int value);
+
+        // chanop and irc op priveleges
+        void      removeClientFromChan(std::string victim, Server *serverInstance, Channel *chan);
 };
 
 #endif // !CLIENT_HPP

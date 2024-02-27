@@ -73,12 +73,18 @@ size_t    Server::getNumberOfClients(void) const {
 }
 
 Client*   Server::getClientByNick(std::string nick) {
-    std::map<int, Client *>::iterator it = this->_clients.begin();
-    for(; it != this->_clients.begin(); ++it) {
-        if ((*it).second->getNickName() == nick)
-            return ((*it).second);
-    }
-    return (NULL);
+
+    int clFd = this->isClientAvailable(0, nick);
+    if (clFd == 0)
+        return NULL;
+    std::map<int, Client *>::iterator it = this->_clients.lower_bound(clFd);
+    return ((*it).second);
+    // std::map<int, Client *>::iterator it = this->_clients.begin();
+    // for(; it != this->_clients.begin(); ++it) {
+    //     if ((*it).second->getNickName() == nick)
+    //         return ((*it).second);
+    // }
+    // return (NULL);
 }
 
 /* ------------------------------------------------------------------------------------------ */
@@ -137,15 +143,19 @@ void    Server::addToFdArray(int newfd) {
 }
 
 int    Server::isClientAvailable(int clientFd, std::string nick) const {
-    std::map<int, Client *>::const_iterator map_it = this->_clients.begin();
-    for (; map_it != this->_clients.end(); map_it++)
-    {
-        // if (map_it->first != clientFd && lowerCaseString(map_it->second->getNickName()) == lowerCaseString(nick)) {
-        if (map_it->first != clientFd && (map_it->second->getNickName()) == (nick)) {
-            return (map_it->first);
-        }
-    }
-    return 0;
+    std::map<std::string, int>::const_iterator map_it = this->_nick_fd_map.lower_bound(nick);
+    if (map_it == this->_nick_fd_map.end() || (*map_it).first != nick)
+        return 0;
+    return ((*map_it).second);
+    // std::map<int, Client *>::const_iterator map_it = this->_clients.begin();
+    // for (; map_it != this->_clients.end(); map_it++)
+    // {
+    //     // if (map_it->first != clientFd && lowerCaseString(map_it->second->getNickName()) == lowerCaseString(nick)) {
+    //     if (map_it->first != clientFd && (map_it->second->getNickName()) == (nick)) {
+    //         return (map_it->first);
+    //     }
+    // }
+    // return 0;
 }
 
 /* ------------------------------------------------------------------------------------------ */
@@ -196,9 +206,9 @@ void Server::sendMsgToClient(int clientFd, std::string msg) {
         * [PRIVMSG <recipient nickname> :<message to be sent>] - is the format
         * we should check if nick
 */
-std::string Server::constructReplayMsg(Client *senderClient, Command *cmd, std::string recieverNick) {
+std::string Server::constructReplayMsg(std::string senderNick, Client *senderClient, Command *cmd, std::string recieverNick) {
     std::string msg = cmd->raw_cmd.substr(cmd->raw_cmd.find(':') + 1);
-    std::string rply = PRIVMSG_RPLY(senderClient->getNickName(), senderClient->getUserName(), this->getServerHostName(), recieverNick, msg);
+    std::string rply = PRIVMSG_RPLY(senderNick, senderClient->getUserName(), this->getServerHostName(), recieverNick, msg);
     return rply;
 }
 
@@ -226,6 +236,7 @@ void Server::userAuthenticationAndWelcome(Client* client, Command *command) {
         // // send welcome message
     if (client->getIsAuthenticated() && client->getUserName() != "" && client->getNickName() != "") {
         client->setIsregistered(true);
+        this->_nick_fd_map.insert(std::pair<std::string, int>(client->getNickName(), client->getFd()));
         this->sendMsgToClient(client->getFd(), RPL_WELCOME(this->getServerHostName(), client->getUserName(), client->getNickName()));
         this->sendMsgToClient(client->getFd(), RPL_YOURHOST(this->getServerHostName(), client->getNickName()));
         this->sendMsgToClient(client->getFd(), RPL_CREATED(this->getServerHostName(), client->getNickName()));
@@ -274,37 +285,74 @@ void Server::removeClient(int clientFd) {
 /*                                      Channel related Operations                                                    */
 /* ================================================================================================================== */
 
-void    Server::createChannel(std::string chanName, std::string key, Client *creator) {
-    Channel* newChan = new Channel(chanName, key, creator);
+/* 
+    // after creation of channel, these should be displayed on the channel window.
+        06:32 -!- tesfa__ [~dd@5.195.225.158] has joined #ullaMo
+        06:32 [Users #ullaMo]
+        06:32 [@tesfa__]
+        06:32 -!- Irssi: #ullaMo: Total of 1 nicks [1 ops, 0 halfops, 0 voices, 0 normal]
+        06:32 -!- Channel #ullaMo created Tue Feb 27 06:32:49 2024
+ */
+
+void    Server::createChannel(std::string chanName, Client *creator) {
+    Channel* newChan = new Channel(chanName, creator);
     this->_channels.insert(std::make_pair(chanName, newChan));
+    newChan->makeClientChanOp(creator->getNickName());
+    newChan->insertToMemberFdMap(creator->getNickName(), creator->getFd());
 }
 
 bool      Server::doesChanExist(std::string chanName) {
+    if (this->_channels.size() == 0)
+        return false;
     std::map<std::string, Channel *>::iterator it = this->_channels.lower_bound(chanName);
     if ((*it).first != chanName)
         return false;
     return (true);
 }
+
 Channel   *Server::getChanByName(std::string chanName) {
+    if (this->_channels.size() == 0)
+        return NULL;
     std::map<std::string, Channel *>::iterator it = this->_channels.lower_bound(chanName);
+    if (it == this->_channels.end())
+        return NULL;
     return ((*it).second);
 }
 
+void    Server::deleteAChannel(Channel *chan) {
+    this->_channels.erase(chan->getChannelName()); // remove it from the map
+    delete chan; // destruct it
+}
+
+void       Server::sendMessageToChan(Channel *chan, Command *command, Client *client, std::string sender) {
+    // we have nick-fd table
+    chan->sendToAllMembers(this, sender, command);
+}
 /* ================================================================================================================== */
 /*                                                  DO STUFF                                                          */
 /* ================================================================================================================== */
+
+void    Server::channelRelatedOperations(Client* client, Command *command) {
+    if (command->cmd == "JOIN")
+        command->join(client, this);
+    else if (command->cmd == "KICK")
+        command->kick(client, this);
+    // else if (command->cmd == "APART")
+    //     command->apart(client, this);
+}
+
 void Server::doStuff(Client* client, Command *command) {
-    if (command->cmd == "PING")
+    if (command->cmd == "PING") {
         this->sendMsgToClient(client->getFd(), PONG(this->getServerHostName()));
+        return ;
+    }
     std::cout << "Full-msg: {" << command->raw_cmd << "}\n";
     if (command->cmd == "PRIVMSG") {
         command->privmsg(client, this);
     }
     /* Channel and channel related features --- big job */
-    if (command->cmd == "JOIN") {
-        std::cout << "CHANNELL JOIN\n";
-        command->join(client, this);
-        std::cout << "Channel joined\n";
+    if (command->cmd == "JOIN" || command->cmd == "KICK" || command->cmd == "INVITE" || command->cmd == "TOPIC" || command->cmd == "MODE" || command->cmd == "APART") {
+        this->channelRelatedOperations(client, command);
     }
     /* Not mandatory Commands */
     if (command->cmd == "WHOIS") {

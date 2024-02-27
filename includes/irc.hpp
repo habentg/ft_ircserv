@@ -68,6 +68,9 @@
 #define ERR_NOTEXTTOSEND(hostname)                  std::string(":"+hostname+" 412 :No text to send\r\n")
 #define ERR_REGISTER_FIRST(hostname)                std::string(":"+hostname+" 451 * :Register first\r\n")
 #define ERR_NOPRIVILEGES(hostname, nickname)        std::string(":"+hostname+" 481 "+nickname+" :Permission to KILL a user DENAID, You aint an Server-OP!\r\n")
+#define ERR_BADCHANNELKEY(hostname, nickname)       std::string(":"+hostname+" 475 "+nickname+" :channel key mismatch\r\n")
+#define ERR_BADCHANMASK(hostname, nickname)         std::string(":"+hostname+" 476 "+nickname+" :invalid channel name\r\n")
+#define ERR_CHANOPRIVSNEEDED(hostname, nickname)         std::string(":"+hostname+" 482 "+nickname+" :invalid channel name\r\n")
 
 /* REPLAY */
 #define userHostMask(senderNick, senderUsername, hostname)                      std::string(":"+senderNick+"!"+senderUsername+"@"+hostname)

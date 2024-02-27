@@ -29,6 +29,7 @@ class Command {
         void    user(Client *client, Server* serverInstance);
         void    privmsg(Client *senderClient, Server *serverInstance);
         void    join(Client *senderClient, Server *serverInstance);
+        void    kick(Client *senderClient, Server *serverInstance);
 };
 
 

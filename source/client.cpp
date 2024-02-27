@@ -80,3 +80,11 @@ unsigned int Client::getWrongPassCount(void) const {
 void Client::setWrongPassCount(unsigned int value) {
     this->_wrongPassCount = value;
 }
+
+void      Client::removeClientFromChan(std::string victim, Server *serverInstance, Channel *chan) {
+    // delete a user from the channel
+    chan->deleteAMember(victim);
+    // (channel seize to exist if there is no user)
+    if (chan->getNumOfChanMembers() == 0)
+        serverInstance->deleteAChannel(chan);
+}

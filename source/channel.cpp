@@ -12,12 +12,12 @@
 
 #include "../includes/irc.hpp"
 
-Channel::Channel(std::string chanName, std::string key, Client *creator) {
+Channel::Channel(std::string chanName, Client *creator) {
     this->_chanName = chanName;
-    this->_chanKey = key;
+    this->_chanKey = "";
     this->_creator = creator->getNickName();
     this->_members.insert(creator->getNickName());
-    this->_operators.insert(creator->getNickName());
+    this->_chanOps.insert(creator->getNickName());
     std::cout << "channel created!\n";
 }
 
@@ -54,3 +54,52 @@ std::string     Channel::getChanKey(void) const {
 void            Channel::setChanKey(std::string newKey) {
     this->_chanKey = newKey;
 }
+
+void            Channel::makeClientChanOp(std::string clientNick) {
+    this->_chanOps.insert("@" + clientNick);
+    std::cout << "--> " +clientNick+"is a chanOp now!\n";
+}
+
+std::string    Channel::isClientChanOp(std::string clientNick) const {
+    std::string potentialOp = "@" + clientNick;
+    std::set<std::string>::iterator it = this->_chanOps.lower_bound(potentialOp);
+    if ((*it) != potentialOp)
+        return "";
+    return potentialOp;
+}
+std::string    Channel::isClientaMember(std::string clientNick) const {
+    std::string potentialOp = "@" + clientNick;
+    std::set<std::string>::iterator it = this->_members.lower_bound(potentialOp);
+    if ((*it) == potentialOp)
+        return potentialOp;
+    std::set<std::string>::iterator m_it = this->_members.lower_bound(clientNick);
+    if ((*m_it) == clientNick)
+        return clientNick;
+    return "";
+}
+
+void     Channel::deleteAMember(std::string victim) {
+    this->_members.erase(victim);
+}
+
+void    Channel::insertToMemberFdMap(std::string nick, int fd) {
+    this->_member_fd_map.insert(std::make_pair(nick, fd));
+}
+
+ void            Channel::sendToAllMembers(Server *serverInstance, std::string senderNick, Command *cmd) {
+    std::string sender = this->isClientaMember(senderNick);
+    std::cout << "HERE is sender NICK: [" << senderNick << "] && we have: {"<<this->getNumOfChanMembers()<<"} members\n";
+    Client *senderClient = serverInstance->getClientByNick(sender);
+    if (senderClient == NULL)
+        return ;
+    std::map<std::string, int>::iterator m_it = this->_member_fd_map.begin();
+    for (; m_it != this->_member_fd_map.end(); ++m_it) {
+        Client *recvClient = serverInstance->getClientByNick((*m_it).first);
+        if (senderClient->getFd() == recvClient->getFd())
+            continue ;
+        std::string msg = serverInstance->constructReplayMsg(senderNick, senderClient, cmd, this->getChannelName());
+        std::cout << "MSG to send: [" << msg << "]\n";
+        serverInstance->sendMsgToClient(recvClient->getFd(), msg);
+        recvClient = NULL;
+    }
+ }

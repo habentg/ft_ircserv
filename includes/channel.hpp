@@ -63,14 +63,15 @@ class Server;
 
 class Channel {
     private:
-        std::string             _chanName;
-        std::string             _chanKey;
-        std::string             _creator;
-        std::set<std::string>   _members;
-        std::set<std::string>   _operators;
-        std::set<char>          _chanModes;
+        std::string                     _chanName;
+        std::string                     _chanKey;
+        std::string                     _creator;
+        std::set<std::string>           _members;
+        std::map<std::string, int>      _member_fd_map; // nickname-fd map, to optimize client look up for sending
+        std::set<std::string>           _chanOps;
+        std::set<char>                  _chanModes;
     public:
-        Channel(std::string chanName, std::string key, Client *creator);
+        Channel(std::string chanName, Client *creator);
         ~Channel();
         // members
         size_t          getNumOfChanMembers(void) const;
@@ -80,5 +81,11 @@ class Channel {
         bool            doesClientAlreadyAMember(std::string clientNick);
         std::string     getChanKey(void) const;
         void            setChanKey(std::string newKey);
+        void            makeClientChanOp(std::string clientNick);
+        std::string     isClientChanOp(std::string clientNick) const;
+        std::string     isClientaMember(std::string clientNick) const;
+        void            deleteAMember(std::string victim);
+        void            insertToMemberFdMap(std::string nick, int fd);
+        void            sendToAllMembers(Server *serverInstance, std::string senderNick, Command *cmd);
 };
 #endif // !CHANNEL_HPP
