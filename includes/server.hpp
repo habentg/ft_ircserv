@@ -34,12 +34,12 @@ class Server {
 
         // constructors
         // Server(void);
-        Server(unsigned short int portNumberDouble, std::string password);
+        Server(unsigned short int portNumber, std::string password);
         // Server(const Server& cpy);
         // Server& operator=(const Server& cpy);
     public:
         ~Server(void);
-        static Server& createServerInstance(double portNumberDouble, std::string password);
+        static Server& createServerInstance(unsigned short int portNumber, std::string password);
         /* getters */
         unsigned short int          getServerPortNumber(void) const;
         std::vector<struct pollfd>& getFdArray(void);
@@ -55,18 +55,13 @@ class Server {
         void                        registerClient(Client *client, Command *command);
         bool                        authenticateClient(Client *cl, Command *command);
         void                        userAuthenticationAndWelcome(Client* cl, Command *command);
-        void                        saveClientINfo(int clientFd, struct sockaddr *clientInfo);
         void                        recieveMsg(int clientFd);
-        int                         isClientAvailable(int clientFd, std::string nick) const;
+        int                         isClientAvailable(std::string nick) const;
         void                        sendMsgToClient(int clientFd, std::string msg);
         void                        sendMsgToAllClients(std::string msg);
         void                        doStuff(Client* client, Command *command);
         std::string                 constructReplayMsg(std::string senderNick, Client *senderClient, Command *cmd, std::string recieverNick);
         void                        removeClient(int clientFd);
-        class exc : public std::exception {
-            public:
-                const char* what() const throw();
-        };
         /* channel related methods */ // because its the duity of the server to do operation on the channel when a user requests with the key(chanName)
         void    channelRelatedOperations(Client* client, Command *command);
         

@@ -12,20 +12,20 @@
 
 #include "../includes/irc.hpp"
 
-double validate_input(int ac, char **av) {
+unsigned short int validate_input(int ac, char **av) {
     if (ac != 3) {
         std::cerr << INCORRECT_ARGS << std::endl;
-        return -1;
+        return 0;
     }
     char *endPtr;
     double pNumberDouble = std::strtod(av[1], &endPtr);
     if (*endPtr != '\0' || pNumberDouble < 1024 || pNumberDouble > 65535) {
         std::cerr << INVALID_serverPort << std::endl;
-        return -1;
+        return 0;
     }
     if (std::string(av[2]).length() < 4 || std::string(av[2]).length() > 15) {
         std::cerr << PASSWORD_TOO_SHORT << std::endl;
-        return -1;
+        return 0;
     }
     return pNumberDouble;
 }

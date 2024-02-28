@@ -58,19 +58,22 @@
 #define PONG(hostname)                              std::string("PONG :"+hostname +"\r\n")
 
 /* Server to Client Error Responses */
-#define ERR_NEEDMOREPARAMS(hostname, cmd)           std::string(":"+hostname+" 464 "+cmd+" :Not enough parameters\r\n")
-#define ERR_ALREADYREGISTERED(hostname)             std::string(":"+hostname+" 462 :You are already registered\r\n")
-#define ERR_PASSWDMISMATCH(hostname)                std::string(":"+hostname+" 464 :Password incorrect\r\n")
-#define ERR_NICKNAMEINUSE(hostname, nickname)       std::string(":"+hostname+" 433 * "+nickname +" :Nickname already in use\r\n")
-#define ERR_ERRONEUSNICKNAME(hostname)              std::string(":"+hostname+" 432 :you have characters in your nickname that are not supported in our server\r\n")
-#define ERR_NONICKNAMEGIVEN(hostname)               std::string(":"+hostname+" 431 :you havent provided with a nickname yet\r\n")
-#define ERR_NOSUCHNICK(hostname, nickname)          std::string(":"+hostname+" 401 "+nickname+" :No such user in our server\r\n")
-#define ERR_NOTEXTTOSEND(hostname)                  std::string(":"+hostname+" 412 :No text to send\r\n")
-#define ERR_REGISTER_FIRST(hostname)                std::string(":"+hostname+" 451 * :Register first\r\n")
-#define ERR_NOPRIVILEGES(hostname, nickname)        std::string(":"+hostname+" 481 "+nickname+" :Permission to KILL a user DENAID, You aint an Server-OP!\r\n")
-#define ERR_BADCHANNELKEY(hostname, nickname)       std::string(":"+hostname+" 475 "+nickname+" :channel key mismatch\r\n")
-#define ERR_BADCHANMASK(hostname, nickname)         std::string(":"+hostname+" 476 "+nickname+" :invalid channel name\r\n")
-#define ERR_CHANOPRIVSNEEDED(hostname, nickname)         std::string(":"+hostname+" 482 "+nickname+" :invalid channel name\r\n")
+#define ERR_NEEDMOREPARAMS(hostname, cmd)                           std::string(":"+hostname+" 464 "+cmd+" :Not enough parameters\r\n")
+#define ERR_ALREADYREGISTERED(hostname)                             std::string(":"+hostname+" 462 :You are already registered\r\n")
+#define ERR_PASSWDMISMATCH(hostname)                                std::string(":"+hostname+" 464 :Password incorrect\r\n")
+#define ERR_NICKNAMEINUSE(hostname, nickname)                       std::string(":"+hostname+" 433 * "+nickname +" :Nickname already in use\r\n")
+#define ERR_ERRONEUSNICKNAME(hostname)                              std::string(":"+hostname+" 432 :you have characters in your nickname that are not supported in our server\r\n")
+#define ERR_NONICKNAMEGIVEN(hostname)                               std::string(":"+hostname+" 431 :you havent provided with a nickname yet\r\n")
+#define ERR_NOSUCHNICK(hostname, nickname, rcvNick)                          std::string(":"+hostname+" 401 "+nickname+rcvNick+" :No such user in our server\r\n")
+#define ERR_NOTEXTTOSEND(hostname)                                  std::string(":"+hostname+" 412 :No text to send\r\n")
+#define ERR_REGISTER_FIRST(hostname)                                std::string(":"+hostname+" 451 * :Register first\r\n")
+#define ERR_NOPRIVILEGES(hostname, nickname)                        std::string(":"+hostname+" 481 "+nickname+" :Permission to KILL a user DENAID, You aint an Server-OP!\r\n")
+#define ERR_BADCHANNELKEY(hostname, nickname)                       std::string(":"+hostname+" 475 "+nickname+" :channel key mismatch\r\n")
+#define ERR_BADCHANMASK(hostname, nickname)                         std::string(":"+hostname+" 476 "+nickname+" :invalid channel name\r\n")
+#define ERR_CHANOPRIVSNEEDED(hostname, nickname, chanName)                    std::string(":"+hostname+" 482 "+nickname+chanName+" :you are not channel OP\r\n")
+#define ERR_NOSUCHCHANNEL(hostname, nickname, chanName)                       std::string(":"+hostname+" 403 "+nickname+chanName+" :no such channel\r\n")
+#define ERR_YouIsNotInCHANNEL(hostname, nickname, chanName)         std::string(":"+hostname+" 442 "+nickname+chanName+" :you are not in channel, so you cant send\r\n")
+#define ERR_USERNOTINCHANNEL(hostname, nickname, chanName)         std::string(":"+hostname+" 441 "+nickname+chanName+" :user is is not in channel\r\n")
 
 /* REPLAY */
 #define userHostMask(senderNick, senderUsername, hostname)                      std::string(":"+senderNick+"!"+senderUsername+"@"+hostname)
@@ -90,7 +93,7 @@
 
 
 
-double                      validate_input(int ac, char **av);
+unsigned short int          validate_input(int ac, char **av);
 std::vector<std::string>    split(std::string& str, char delimiter);
 void                        printVector(std::vector<std::string> vec);
 std::string                 lowerCaseString(std::string str);

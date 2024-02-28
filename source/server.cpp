@@ -15,7 +15,7 @@
 /* ------------------------------------------------------------------------------------------ */
 /*                           Constructing our server object                                   */
 /* ------------------------------------------------------------------------------------------ */
-Server* Server::serverInstance = NULL;
+Server* Server::serverInstance = NULL; // global serverInstance pointer, it will act as a flag if a single server instace is created!
 
 Server::Server(unsigned short int  portNumber, std::string password) : _serverPort(portNumber) {
     this->_serverSocketFd = 0;
@@ -24,9 +24,9 @@ Server::Server(unsigned short int  portNumber, std::string password) : _serverPo
     std::cout << "Server created!" << std::endl;
 }
 
-Server& Server::createServerInstance(double portNumberDouble, std::string password) {
+Server& Server::createServerInstance(unsigned short int portNumber, std::string password) {
     if (!serverInstance)
-        serverInstance = new Server(static_cast<unsigned short int>(portNumberDouble), password);
+        serverInstance = new Server(portNumber, password);
     return *serverInstance;
 }
 
@@ -38,12 +38,6 @@ Server::~Server(void) {
     for (; ch_it != this->_channels.end(); ch_it++)
         delete ch_it->second;
     std::cout << "Server Destructor Called!";
-}
-/* ------------------------------------------------------------------------------------------ */
-/*                           Exception methods                                                */
-/* ------------------------------------------------------------------------------------------ */
-const char* Server::exc::what() const throw() {
-    return "Something went wrong!";
 }
 
 /* ------------------------------------------------------------------------------------------ */
@@ -73,18 +67,14 @@ size_t    Server::getNumberOfClients(void) const {
 }
 
 Client*   Server::getClientByNick(std::string nick) {
-
-    int clFd = this->isClientAvailable(0, nick);
+    std::string validNick = nick;
+    if (nick[0] == '@')
+        validNick = nick.substr(1);
+    int clFd = this->isClientAvailable(validNick);
     if (clFd == 0)
         return NULL;
     std::map<int, Client *>::iterator it = this->_clients.lower_bound(clFd);
     return ((*it).second);
-    // std::map<int, Client *>::iterator it = this->_clients.begin();
-    // for(; it != this->_clients.begin(); ++it) {
-    //     if ((*it).second->getNickName() == nick)
-    //         return ((*it).second);
-    // }
-    // return (NULL);
 }
 
 /* ------------------------------------------------------------------------------------------ */
@@ -92,7 +82,7 @@ Client*   Server::getClientByNick(std::string nick) {
 /* ------------------------------------------------------------------------------------------ */
 void Server::server_listen_setup(char *portNumber) {
     int sockfd;
-    int enableer = 1; // for setsockopt() -> to avoid "is already in use" error
+    int enabler = 1; // for setsockopt() -> to avoid "is already in use" error
     struct addrinfo hints;
 
     char hostname[256];
@@ -113,7 +103,7 @@ void Server::server_listen_setup(char *portNumber) {
     sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (sockfd == -1) 
         throw std::runtime_error("Error: creating socket");
-    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enableer, sizeof(int)))
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enabler, sizeof(int)))
         throw std::runtime_error("Error: setsockopt");
     if (fcntl(sockfd, F_SETFL, O_NONBLOCK) < -1)
         throw std::runtime_error("Error: fcntl");
@@ -134,6 +124,8 @@ void Server::server_listen_setup(char *portNumber) {
 /* ------------------------------------------------------------------------------------------ */
 void    Server::addToFdArray(int newfd) {
     // validate the new fd first --- comeback later
+    if (newfd < 0) // wont happen but protection
+        return ;
     // also initialize all of them for conditional jumps avoidance
     struct pollfd newConFdStruct;
     newConFdStruct.fd = newfd;
@@ -142,48 +134,14 @@ void    Server::addToFdArray(int newfd) {
     this->getFdArray().push_back(newConFdStruct);
 }
 
-int    Server::isClientAvailable(int clientFd, std::string nick) const {
+int    Server::isClientAvailable(std::string nick) const {
     std::map<std::string, int>::const_iterator map_it = this->_nick_fd_map.lower_bound(nick);
     if (map_it == this->_nick_fd_map.end() || (*map_it).first != nick)
         return 0;
     return ((*map_it).second);
-    // std::map<int, Client *>::const_iterator map_it = this->_clients.begin();
-    // for (; map_it != this->_clients.end(); map_it++)
-    // {
-    //     // if (map_it->first != clientFd && lowerCaseString(map_it->second->getNickName()) == lowerCaseString(nick)) {
-    //     if (map_it->first != clientFd && (map_it->second->getNickName()) == (nick)) {
-    //         return (map_it->first);
-    //     }
-    // }
-    // return 0;
 }
 
-/* ------------------------------------------------------------------------------------------ */
-/*                           creating a client for every fd                                   */
-/* ------------------------------------------------------------------------------------------ */
 
-void Server::saveClientINfo(int clientFd, struct sockaddr *clientInfo) {
-    Client *client = new Client(clientFd, clientInfo);
-    this->_clients.insert(std::pair<int, Client *>(clientFd, client));
-    // std::cout << "Client info saved! : " << this->_clients.size() << "\n";
-}
-
-/* ------------------------------------------------------------------------------------------ */
-/*                           accepting new connection                                         */
-/* ------------------------------------------------------------------------------------------ */
-void Server::acceptNewConnection(void) {
-    struct sockaddr_storage client_addr;
-    socklen_t client_addr_size = sizeof(client_addr);
-    int newClientFd = accept(this->_serverSocketFd, (sockaddr *)&client_addr, &client_addr_size);
-    if (newClientFd == -1) {
-        throw std::runtime_error("Error: accepting connections!");
-    }
-    this->addToFdArray(newClientFd);
-    struct sockaddr *clientInfo = (struct sockaddr *)&client_addr;
-    std::cout << "New Client accepted: " << inet_ntoa(((struct sockaddr_in *)clientInfo)->sin_addr)
-        << ":" << ntohs(((struct sockaddr_in *)clientInfo)->sin_port) << " at FD: " << newClientFd <<std::endl;
-    saveClientINfo(newClientFd, clientInfo);
-}
 
 /* ------------------------------------------------------------------------------------------ */
 /*                 Recive a message from an existing connection                               */
@@ -194,6 +152,7 @@ void Server::sendMsgToAllClients(std::string msg) {
     for (; it != this->_clients.end(); it++)
         this->sendMsgToClient(it->first, msg);
 }
+
 void Server::sendMsgToClient(int clientFd, std::string msg) {
     int bytes_sent = send(clientFd, msg.c_str(), msg.length(), 0);
     if (bytes_sent == -1)
@@ -212,64 +171,15 @@ std::string Server::constructReplayMsg(std::string senderNick, Client *senderCli
     return rply;
 }
 
-bool    Server::authenticateClient(Client *cl, Command *command) {
-    if (command->cmd == "PASS") {
-        command->password(cl, this);
-    }
-    else if (cl->getIsAuthenticated()) {
-        if (command->cmd == "NICK")
-            return (command->nickname(cl, this));
-        if (command->cmd == "USER")
-            command->user(cl, this);
-    }
-    else {
-        this->sendMsgToClient(cl->getFd(), ERR_REGISTER_FIRST(this->getServerHostName()));
-        return false;
-    }
-    return true;
-}
-
-void Server::userAuthenticationAndWelcome(Client* client, Command *command) {
-    // authenticate
-    if (authenticateClient(client, command) == false)
-        return ;
-        // // send welcome message
-    if (client->getIsAuthenticated() && client->getUserName() != "" && client->getNickName() != "") {
-        client->setIsregistered(true);
-        this->_nick_fd_map.insert(std::pair<std::string, int>(client->getNickName(), client->getFd()));
-        this->sendMsgToClient(client->getFd(), RPL_WELCOME(this->getServerHostName(), client->getUserName(), client->getNickName()));
-        this->sendMsgToClient(client->getFd(), RPL_YOURHOST(this->getServerHostName(), client->getNickName()));
-        this->sendMsgToClient(client->getFd(), RPL_CREATED(this->getServerHostName(), client->getNickName()));
-        this->sendMsgToClient(client->getFd(), RPL_MYINFO(this->getServerHostName(), client->getNickName()));
-        this->sendMsgToClient(client->getFd(), RPL_ISUPPORT(this->getServerHostName(), client->getNickName()));
-        /* MOTD */
-        this->sendMsgToClient(client->getFd(), RPL_MOTDSTART(this->getServerHostName(), client->getNickName()));
-        this->sendMsgToClient(client->getFd(), RPL_MOTD(this->getServerHostName(), client->getNickName()));
-        this->sendMsgToClient(client->getFd(), RPL_ENDOFMOTD(this->getServerHostName(), client->getNickName()));
-        // if there is no serverOp, lets give him the honor
-        if (this->_serverOperators.size() == 0)
-            this->_serverOperators.insert("@%" + client->getNickName());
-        std::cout << "//////server Operator is: [" << *(this->_serverOperators.begin()) << "]//////\n";
-        std::cout << "Client: " << client->getFd() << " is Connected!!\n";
-    }
-}
-
-void Server::registerClient(Client *client, Command *command) {
-
-    if (command->cmd == "CAP") {
-        if (command->params[0] == "LS")
-            this->sendMsgToClient(client->getFd(), CAP_LS_RESP(this->getServerHostName()));
-        else if (command->params[0] == "REQ")
-            this->sendMsgToClient(client->getFd(), CAP_ACK_RESP(this->getServerHostName()));
-    }
-    else {
-        this->userAuthenticationAndWelcome(client, command);
-    }
-}
-
+/* Removing a Client and Closing connection
+    > remove the client from everything he is involved to (IMPORTANT!)
+    > distruct the object
+    > close the fd.
+*/
 void Server::removeClient(int clientFd) {
-    delete this->getClient(clientFd); // delete the client object
+    Client *cl = this->getClient(clientFd);
     this->_clients.erase(clientFd); // remove the client from the map
+    this->_nick_fd_map.erase(cl->getNickName());
     // remove the fd STRUCT from the array as weelllllllll
     std::vector<struct pollfd>::iterator it = this->_fdsArray.begin();
     for (; it != this->_fdsArray.end(); it++) {
@@ -278,6 +188,7 @@ void Server::removeClient(int clientFd) {
             break ;
         }
     }
+    delete cl; // delete the client object
     close(clientFd);
 }
 
@@ -298,7 +209,15 @@ void    Server::createChannel(std::string chanName, Client *creator) {
     Channel* newChan = new Channel(chanName, creator);
     this->_channels.insert(std::make_pair(chanName, newChan));
     newChan->makeClientChanOp(creator->getNickName());
-    newChan->insertToMemberFdMap(creator->getNickName(), creator->getFd());
+    newChan->insertToMemberFdMap(("@" + creator->getNickName()), creator->getFd()); // he a chanOp!
+    newChan->addMember(("@" + creator->getNickName())); // he a chanOp!
+    std::cout << "CHANNEL : {" << newChan->getChannelName() << "} created!\n";
+    /* 
+        << JOIN #lef
+        >> :tesfa___!~dd@5.195.225.158 JOIN #lef
+        >> :hostsailor.ro.quakenet.org 353 tesfa___ = #lef :@tesfa___
+        >> :hostsailor.ro.quakenet.org 366 tesfa___ #lef :End of /NAMES list.
+    */
 }
 
 bool      Server::doesChanExist(std::string chanName) {
@@ -311,15 +230,18 @@ bool      Server::doesChanExist(std::string chanName) {
 }
 
 Channel   *Server::getChanByName(std::string chanName) {
-    if (this->_channels.size() == 0)
+    if (this->_channels.size() == 0) {
+        std::cout << "is channels size equal to zeor\n";
         return NULL;
+    }
     std::map<std::string, Channel *>::iterator it = this->_channels.lower_bound(chanName);
-    if (it == this->_channels.end())
+    if (it == this->_channels.end() || (*it).first != chanName)
         return NULL;
     return ((*it).second);
 }
 
 void    Server::deleteAChannel(Channel *chan) {
+    // we will see if we manually have to remove all members first!
     this->_channels.erase(chan->getChannelName()); // remove it from the map
     delete chan; // destruct it
 }
@@ -328,6 +250,7 @@ void       Server::sendMessageToChan(Channel *chan, Command *command, Client *cl
     // we have nick-fd table
     chan->sendToAllMembers(this, sender, command);
 }
+
 /* ================================================================================================================== */
 /*                                                  DO STUFF                                                          */
 /* ================================================================================================================== */
@@ -341,6 +264,14 @@ void    Server::channelRelatedOperations(Client* client, Command *command) {
     //     command->apart(client, this);
 }
 
+/* Connected Client can DO these stuff basicly:
+    =!> PONG
+        - servers response when a client checks for livelyness of the server (no bigie)
+    =!> PRIVMSG
+        - clients can message privately between one another or send messag to a channel thier in
+    =!> PRIVMSG
+    
+ */
 void Server::doStuff(Client* client, Command *command) {
     if (command->cmd == "PING") {
         this->sendMsgToClient(client->getFd(), PONG(this->getServerHostName()));
@@ -349,10 +280,12 @@ void Server::doStuff(Client* client, Command *command) {
     std::cout << "Full-msg: {" << command->raw_cmd << "}\n";
     if (command->cmd == "PRIVMSG") {
         command->privmsg(client, this);
+        return ;
     }
     /* Channel and channel related features --- big job */
     if (command->cmd == "JOIN" || command->cmd == "KICK" || command->cmd == "INVITE" || command->cmd == "TOPIC" || command->cmd == "MODE" || command->cmd == "APART") {
         this->channelRelatedOperations(client, command);
+        return ;
     }
     /* Not mandatory Commands */
     if (command->cmd == "WHOIS") {
@@ -404,15 +337,17 @@ void Server::recieveMsg(int clientFd) {
             Client *client = this->_clients[clientFd];
 
             // so far all the commands I know has to have at least one parameter!
-            if (command->params.empty())
+                // we can have empty "USER" cmd i think
+            if (command->params.empty() && command->cmd != "USER")
             {
                 this->sendMsgToClient(client->getFd(), ERR_NEEDMOREPARAMS(this->getServerHostName(), command->cmd));
                 return ;
             }
+            // we register the client first, (basicly assign nickname, username and other identifiers to the new connection so it can interact with other users)
             if (client->IsClientConnected() == false) {
                 this->registerClient(client, command);
             }
-            else
+            else // now he can do anything
                 this->doStuff(client, command);
             delete command; // we dont need the command anymore
         }
