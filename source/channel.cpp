@@ -103,5 +103,4 @@ void    Channel::insertToMemberFdMap(std::string nick, int fd) {
         serverInstance->sendMsgToClient(recvClient->getFd(), msg);
         recvClient = NULL;
     }
-    std::cout << "we here to send soething to all memeber of a channel\n";
  }

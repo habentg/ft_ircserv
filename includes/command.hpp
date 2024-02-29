@@ -30,8 +30,8 @@ class Command {
         void    privmsg(Client *senderClient, Server *serverInstance);
         void    join(Client *senderClient, Server *serverInstance);
         void    kick(Client *senderClient, Server *serverInstance);
+        void    quit(Client *senderClient, Server *serverInstance);
 };
-
 
 size_t validNickName(std::vector<std::string> nick_params, int clientFd, Server* serverInstance, std::string cmdName);
 

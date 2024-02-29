@@ -61,7 +61,7 @@ class Server {
         void                        sendMsgToAllClients(std::string msg);
         void                        doStuff(Client* client, Command *command);
         std::string                 constructReplayMsg(std::string senderNick, Client *senderClient, Command *cmd, std::string recieverNick);
-        void                        removeClient(int clientFd);
+        void                        removeClient(Client *senderClient);
         /* channel related methods */ // because its the duity of the server to do operation on the channel when a user requests with the key(chanName)
         void    channelRelatedOperations(Client* client, Command *command);
         

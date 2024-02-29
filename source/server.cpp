@@ -37,7 +37,7 @@ Server::~Server(void) {
     std::map<std::string, Channel *>::iterator ch_it = this->_channels.begin();
     for (; ch_it != this->_channels.end(); ch_it++)
         delete ch_it->second;
-    std::cout << "Server Destructor Called!";
+    std::cout << "Server Destructor Called!\n";
 }
 
 /* ------------------------------------------------------------------------------------------ */
@@ -176,20 +176,21 @@ std::string Server::constructReplayMsg(std::string senderNick, Client *senderCli
     > distruct the object
     > close the fd.
 */
-void Server::removeClient(int clientFd) {
-    Client *cl = this->getClient(clientFd);
-    this->_clients.erase(clientFd); // remove the client from the map
+void Server::removeClient(Client *cl) {
+    // we have to find a way to delete a client from the channels he is in
+    this->_clients.erase(cl->getFd()); // remove the client from the map
     this->_nick_fd_map.erase(cl->getNickName());
     // remove the fd STRUCT from the array as weelllllllll
     std::vector<struct pollfd>::iterator it = this->_fdsArray.begin();
     for (; it != this->_fdsArray.end(); it++) {
-        if ((*it).fd == clientFd) {
+        if ((*it).fd == cl->getFd()) {
             this->_fdsArray.erase(it);
             break ;
         }
     }
+    close(cl->getFd());
     delete cl; // delete the client object
-    close(clientFd);
+    std::cout << "one client quit: " << this->getNumberOfClients() << " left in server\n";
 }
 
 /* ================================================================================================================== */
@@ -218,6 +219,7 @@ void    Server::createChannel(std::string chanName, Client *creator) {
         >> :hostsailor.ro.quakenet.org 353 tesfa___ = #lef :@tesfa___
         >> :hostsailor.ro.quakenet.org 366 tesfa___ #lef :End of /NAMES list.
     */
+
 }
 
 bool      Server::doesChanExist(std::string chanName) {
@@ -280,6 +282,10 @@ void Server::doStuff(Client* client, Command *command) {
     std::cout << "Full-msg: {" << command->raw_cmd << "}\n";
     if (command->cmd == "PRIVMSG") {
         command->privmsg(client, this);
+        return ;
+    }
+    if (command->cmd == "QUIT") {
+        command->quit(client, this);
         return ;
     }
     /* Channel and channel related features --- big job */

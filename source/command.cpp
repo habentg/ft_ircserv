@@ -40,7 +40,7 @@ void    Command::password(Client *client, Server* serverInstance) {
     else {
         serverInstance->sendMsgToClient(client->getFd(), ERR_PASSWDMISMATCH(serverInstance->getServerHostName()));
         if (client->getWrongPassCount() == 2) {
-            serverInstance->removeClient(client->getFd());
+            serverInstance->removeClient(client);
             return ;
         } else
             client->setWrongPassCount(client->getWrongPassCount() + 1);
@@ -92,7 +92,6 @@ bool    Command::nickname(Client *client, Server* serverInstance) {
         return false;
     std::string nick_name = this->params[0].substr(0, invalidCharIndex); 
     if (serverInstance->isClientAvailable(nick_name) != 0) { // if a client with the same nickname is already available
-        std::cout << "nick in use\n";
         serverInstance->sendMsgToClient(client->getFd(), ERR_NICKNAMEINUSE(serverInstance->getServerHostName(), nick_name));
         return false;
     }
@@ -193,6 +192,12 @@ void    Command::join(Client *client, Server *serverInstance) {
     chann->addMember(client->getNickName());
     chann->insertToMemberFdMap(client->getNickName(), client->getFd());
     std::cout << "Added {"<<client->getNickName()<<"} to <"<<chann->getChannelName()<<"> has : " <<chann->getNumOfChanMembers()<<" members now\n";
+    /* 
+        << JOIN #habeChan1
+        >> :habentes1a!~hy@bba-92-99-114-94.alshamil.net.ae JOIN #habeChan1
+        >> :euroserv.fr.quakenet.org 353 habentes1a = #habeChan1 :habentes1a habentesfa @habentes2a
+        >> :euroserv.fr.quakenet.org 366 habentes1a #habeChan1 :End of /NAMES list.
+    */
 }
 
 /*
@@ -253,4 +258,10 @@ void    Command::kick(Client *senderClient, Server *serverInstance) {
         kickMsg = victim;
     
     std::cout << " >>>> After users kick: [" << chan->getNumOfChanMembers() << "]\n";
+}
+
+
+void    Command::quit(Client *senderClient, Server *serverInstance) {
+    std::cout << "++ before remove: " << serverInstance->getNumberOfClients() << " left in server\n";
+    serverInstance->removeClient(senderClient);
 }
