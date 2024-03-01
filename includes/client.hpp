@@ -30,6 +30,7 @@ class Client {
         char*       _ipaddr;
         uint32_t    _port;
         unsigned int _wrongPassCount;
+        std::set<std::string> _channelsJoined;
         struct sockaddr* _clientInfo; // incase I need more info about the client
         Client(void);
     public:
@@ -55,11 +56,11 @@ class Client {
         
         std::string     getIpAddr(void) const;
         
+        std::set<std::string>& getChannelsJoined(void);
+
         unsigned int    getWrongPassCount(void) const;
         void            setWrongPassCount(unsigned int value);
-
-        // chanop and irc op priveleges
-        void      removeClientFromChan(std::string victim, Server *serverInstance, Channel *chan);
+        void            addChannelNameToCollection(std::string chanName);
 };
 
 #endif // !CLIENT_HPP

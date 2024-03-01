@@ -77,6 +77,13 @@ Client*   Server::getClientByNick(std::string nick) {
     return ((*it).second);
 }
 
+std::string Server::isClientServerOp(std::string nick) {
+    std::set<std::string>::iterator it = this->_serverOperators.lower_bound("@%" + nick);
+    if (it == this->_serverOperators.end() || (*it).substr(2) != nick)
+        return "";
+    return (*it);
+}
+
 /* ------------------------------------------------------------------------------------------ */
 /*                           Creating Socket and Listening                                    */
 /* ------------------------------------------------------------------------------------------ */
@@ -165,9 +172,9 @@ void Server::sendMsgToClient(int clientFd, std::string msg) {
         * [PRIVMSG <recipient nickname> :<message to be sent>] - is the format
         * we should check if nick
 */
-std::string Server::constructReplayMsg(std::string senderNick, Client *senderClient, Command *cmd, std::string recieverNick) {
-    std::string msg = cmd->raw_cmd.substr(cmd->raw_cmd.find(':') + 1);
-    std::string rply = PRIVMSG_RPLY(senderNick, senderClient->getUserName(), this->getServerHostName(), recieverNick, msg);
+std::string Server::constructReplayMsg(std::string senderNick, Client *senderClient, std::string recieverNick, std::string msgToSend) {
+    // std::string msg = cmd->raw_cmd.substr(cmd->raw_cmd.find(':') + 1);
+    std::string rply = PRIVMSG_RPLY(senderNick, senderClient->getUserName(), this->getServerHostName(), recieverNick, msgToSend);
     return rply;
 }
 
@@ -176,8 +183,20 @@ std::string Server::constructReplayMsg(std::string senderNick, Client *senderCli
     > distruct the object
     > close the fd.
 */
-void Server::removeClient(Client *cl) {
+void Server::removeClient(Client *cl, std::string quitMsg) {
     // we have to find a way to delete a client from the channels he is in
+    std::set<std::string> chansInvolved = cl->getChannelsJoined();
+    std::set<std::string>::iterator chanIt = chansInvolved.begin();
+    for (; chanIt != chansInvolved.end(); ++chanIt) {
+        Channel *chan = this->getChanByName(*chanIt);
+        if (chan == NULL)
+            continue ;
+        /* this NOTICE has to be sent to all the channels he was in
+            06:59 -!- tesfa [~dd@5.195.225.158] has quit [Quit: leaving]
+        */
+        this->sendMessageToChan(chan, cl->getNickName(), quitMsg, true);
+        this->removeClientFromChan(cl->getNickName(), chan);
+    }
     this->_clients.erase(cl->getFd()); // remove the client from the map
     this->_nick_fd_map.erase(cl->getNickName());
     // remove the fd STRUCT from the array as weelllllllll
@@ -212,6 +231,7 @@ void    Server::createChannel(std::string chanName, Client *creator) {
     newChan->makeClientChanOp(creator->getNickName());
     newChan->insertToMemberFdMap(("@" + creator->getNickName()), creator->getFd()); // he a chanOp!
     newChan->addMember(("@" + creator->getNickName())); // he a chanOp!
+    creator->addChannelNameToCollection(newChan->getChannelName());
     std::cout << "CHANNEL : {" << newChan->getChannelName() << "} created!\n";
     /* 
         << JOIN #lef
@@ -219,7 +239,9 @@ void    Server::createChannel(std::string chanName, Client *creator) {
         >> :hostsailor.ro.quakenet.org 353 tesfa___ = #lef :@tesfa___
         >> :hostsailor.ro.quakenet.org 366 tesfa___ #lef :End of /NAMES list.
     */
-
+   this->sendMsgToClient(creator->getFd(), RPL_JOIN(creator->getNickName(), creator->getUserName(), creator->getIpAddr(), chanName));
+   this->sendMsgToClient(creator->getFd(), RPL_NAMREPLY(this->getServerHostName(), creator->getNickName(), chanName));
+   this->sendMsgToClient(creator->getFd(), RPL_ENDOFNAMES(this->getServerHostName(), creator->getNickName(), chanName));
 }
 
 bool      Server::doesChanExist(std::string chanName) {
@@ -233,7 +255,6 @@ bool      Server::doesChanExist(std::string chanName) {
 
 Channel   *Server::getChanByName(std::string chanName) {
     if (this->_channels.size() == 0) {
-        std::cout << "is channels size equal to zeor\n";
         return NULL;
     }
     std::map<std::string, Channel *>::iterator it = this->_channels.lower_bound(chanName);
@@ -242,15 +263,25 @@ Channel   *Server::getChanByName(std::string chanName) {
     return ((*it).second);
 }
 
+ void      Server::removeClientFromChan(std::string victimNick, Channel *chan) {
+    // delete a user from the channel
+    chan->deleteAMember(victimNick);
+    // (channel seize to exist if there is no user)
+    if (chan->getNumOfChanMembers() == 0) {
+        serverInstance->deleteAChannel(chan);
+        std::cout << "Channel deleted coz no one is here\n";
+    }
+ }
+
 void    Server::deleteAChannel(Channel *chan) {
     // we will see if we manually have to remove all members first!
     this->_channels.erase(chan->getChannelName()); // remove it from the map
     delete chan; // destruct it
 }
 
-void       Server::sendMessageToChan(Channel *chan, Command *command, Client *client, std::string sender) {
+void       Server::sendMessageToChan(Channel *chan, std::string sender, std::string msg, bool chanNotice) {
     // we have nick-fd table
-    chan->sendToAllMembers(this, sender, command);
+    chan->sendToAllMembers(this, sender, msg, chanNotice);
 }
 
 /* ================================================================================================================== */
@@ -262,8 +293,8 @@ void    Server::channelRelatedOperations(Client* client, Command *command) {
         command->join(client, this);
     else if (command->cmd == "KICK")
         command->kick(client, this);
-    // else if (command->cmd == "APART")
-    //     command->apart(client, this);
+    else if (command->cmd == "PART")
+        command->partLeavChan(client, this);
 }
 
 /* Connected Client can DO these stuff basicly:
@@ -289,7 +320,7 @@ void Server::doStuff(Client* client, Command *command) {
         return ;
     }
     /* Channel and channel related features --- big job */
-    if (command->cmd == "JOIN" || command->cmd == "KICK" || command->cmd == "INVITE" || command->cmd == "TOPIC" || command->cmd == "MODE" || command->cmd == "APART") {
+    if (command->cmd == "JOIN" || command->cmd == "KICK" || command->cmd == "INVITE" || command->cmd == "TOPIC" || command->cmd == "MODE" || command->cmd == "PART") {
         this->channelRelatedOperations(client, command);
         return ;
     }
@@ -297,7 +328,6 @@ void Server::doStuff(Client* client, Command *command) {
     if (command->cmd == "WHOIS") {
         Client *whoClient = this->getClientByNick(command->params[0]);
         if (whoClient == NULL) {
-            std::cout << "+++++++++++++++++++++++did we return\n";
             return ;
         }
         // [euroserv.fr.quakenet.org 311 tesfa_ tesfa ~dd 5.195.225.158 * :H H]
@@ -310,9 +340,24 @@ void Server::doStuff(Client* client, Command *command) {
         if (*(this->_serverOperators.lower_bound(potencialServerOp)) != potencialServerOp)
             this->sendMsgToClient(client->getFd(), ERR_NOPRIVILEGES(this->getServerHostName(), client->getNickName()));
         else {
-            // Client *clToBeKilled = this->getClientByNick(command->params[0]);
-            // this->removeClient(client->getFd());
-            // we gonna remove a client From everywhere that he is involved in!!
+            // check if the killer is an ircOp.
+            std::string ircOp = isClientServerOp(client->getNickName());
+            if (ircOp == "") {
+                std::cout << "you are not server OP\n";
+                return ;
+            }
+            // check if the victim is actually in the server
+            int victimFd = isClientAvailable(command->params[0]);
+            if (victimFd == 0) {
+                std::cout << "victim is not in server to be killed\n";
+                return ;
+            }
+            // remove client
+            Client *victim = this->getClientByNick(command->params[0]);
+            std::string killMsg = std::string("KILLED YA ......\r\n");
+            this->removeClient(victim, killMsg);
+            std::cout << killMsg << std::endl;
+            /* FOR NOW HE CAN ALSO KILL HIMSELF */
         }
     }
 }

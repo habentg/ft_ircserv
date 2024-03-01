@@ -21,7 +21,6 @@ Command::Command(std::string rcved_cmd) {
 }
 
 Command::~Command(void) {
-    // std::cout << "Command Destructor Called!\n";
 }
 
 /* PASS authentication:
@@ -40,7 +39,7 @@ void    Command::password(Client *client, Server* serverInstance) {
     else {
         serverInstance->sendMsgToClient(client->getFd(), ERR_PASSWDMISMATCH(serverInstance->getServerHostName()));
         if (client->getWrongPassCount() == 2) {
-            serverInstance->removeClient(client);
+            serverInstance->removeClient(client, std::string("3 wrong password attempt"));
             return ;
         } else
             client->setWrongPassCount(client->getWrongPassCount() + 1);
@@ -141,6 +140,7 @@ void Command::privmsg(Client *senderClient, Server *serverInstance) {
         serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOTEXTTOSEND(serverInstance->getServerHostName()));
         return ;
     }
+    std::string msgPriv = this->raw_cmd.substr(this->raw_cmd.find(':') + 1);
     if (this->params[0][0] == '#') {
         Channel *chan = serverInstance->getChanByName(this->params[0]);
         if (chan == NULL) {
@@ -148,12 +148,14 @@ void Command::privmsg(Client *senderClient, Server *serverInstance) {
             return ;
         }
         std::string sender = chan->isClientaMember(senderClient->getNickName());
-        std::cout << "sender: " << sender << std::endl;
         if (sender == "") {
+            /* or we can send "404": cant send to channel, the below format
+                >> :stockholm.se.quakenet.org 404 tesfa_ #habex42ad :Cannot send to channel
+            */
             serverInstance->sendMsgToClient(senderClient->getFd(), ERR_YouIsNotInCHANNEL(serverInstance->getServerHostName(), senderClient->getNickName(), chan->getChannelName()));
             return ;
         }
-        serverInstance->sendMessageToChan(chan, this, senderClient, sender);
+        serverInstance->sendMessageToChan(chan, sender, msgPriv, false);
         return ;
     }
     int recieverFd = serverInstance->isClientAvailable(this->params[0]);
@@ -161,7 +163,7 @@ void Command::privmsg(Client *senderClient, Server *serverInstance) {
         serverInstance->sendMsgToClient(recieverFd, ERR_NOSUCHNICK(serverInstance->getServerHostName(), senderClient->getNickName(), this->params[0]));
         return ;
     }
-    serverInstance->sendMsgToClient(recieverFd, serverInstance->constructReplayMsg(senderClient->getNickName(), senderClient, this, this->params[0]));
+    serverInstance->sendMsgToClient(recieverFd, serverInstance->constructReplayMsg(senderClient->getNickName(), senderClient, this->params[0], msgPriv));
 }
 
 /* Channel naming:
@@ -175,29 +177,46 @@ void    Command::join(Client *client, Server *serverInstance) {
         // incase of a channel name having a space, we can reconstruct the "name" but I am lazy now!
         //{:adrift.sg.quakenet.org 403 tesfa #fhfjk :No such channel}
         serverInstance->sendMsgToClient(client->getFd(), ERR_BADCHANMASK(serverInstance->getServerHostName(), client->getNickName()));
-        std::cout << "invalid channel name given\n";
         return ;
     }
     std::string validChanName = this->params[0];
     // if that channel doesnt exist:
         // create channel, and add dude as an OP
-    if (serverInstance->doesChanExist(validChanName) == false)
+    Channel *chann = serverInstance->getChanByName(validChanName);
+    if (chann == NULL)
     {
         serverInstance->createChannel(validChanName, client);
         return ;
     }
     // if that channel exists:
         // add him, if he is not already there
-    Channel *chann = serverInstance->getChanByName(validChanName);
     chann->addMember(client->getNickName());
+    /* we add the client nickname and fd to our lookup table */
     chann->insertToMemberFdMap(client->getNickName(), client->getFd());
-    std::cout << "Added {"<<client->getNickName()<<"} to <"<<chann->getChannelName()<<"> has : " <<chann->getNumOfChanMembers()<<" members now\n";
+    /* we add the channel name to the clients collection of joined channesl,
+        may be we can put a limmit to how many channels one client can join
+    */
+    client->addChannelNameToCollection(chann->getChannelName());
+    /* sending notices that a client has joined */
+    std::string letThemKnow = RPL_JOIN(client->getNickName(), client->getUserName(), client->getIpAddr(), chann->getChannelName());
+    serverInstance->sendMsgToClient(client->getFd(), letThemKnow);
+    serverInstance->sendMessageToChan(chann, client->getNickName(), letThemKnow, true);
     /* 
         << JOIN #habeChan1
         >> :habentes1a!~hy@bba-92-99-114-94.alshamil.net.ae JOIN #habeChan1
         >> :euroserv.fr.quakenet.org 353 habentes1a = #habeChan1 :habentes1a habentesfa @habentes2a
         >> :euroserv.fr.quakenet.org 366 habentes1a #habeChan1 :End of /NAMES list.
     */
+    /* 
+        -> /NAMES - I have to figure out how to list all the mames in channel and send it to the joiner client in the channel window
+        06:42 [Users #42chan]
+        06:42 [@tesfa] [ htg]
+        06:42 -!- Irssi: #42chan: Total of 2 nicks [1 ops, 0 halfops, 0 voices, 1 normal]
+     */
+    // serverInstance->sendMsgToClient(client->getFd(), RPL_NAMREPLY(serverInstance->getServerHostName(), client->getNickName(), chann->getChannelName()));
+    // serverInstance->sendMsgToClient(client->getFd(), RPL_ENDOFNAMES(serverInstance->getServerHostName(), client->getNickName(), chann->getChannelName()));
+
+    std::cout << "Added {"<<client->getNickName()<<"} to <"<<chann->getChannelName()<<"> has : " <<chann->getNumOfChanMembers()<<" members now\n";
 }
 
 /*
@@ -212,14 +231,12 @@ void    Command::kick(Client *senderClient, Server *serverInstance) {
         std::cout << "not enough parameters for kick cmd\n";
         return ;
     }
-    std::cout << "kicck here 000000\n";
     Channel *chan = serverInstance->getChanByName(this->params[0]);
     if (chan == NULL) {
         serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getServerHostName(), senderClient->getNickName(), this->params[0]));
         std::cout << "channel: [" << this->params[0] << "] doesnt exist!\n";
         return ;
     }
-    std::cout << "kicck here\n";
     // check if "kicker" is a chanOp, if not send error and return
     std::string chanOp = chan->isClientChanOp(senderClient->getNickName());
     if (chanOp == "") {
@@ -228,7 +245,6 @@ void    Command::kick(Client *senderClient, Server *serverInstance) {
         std::cout << "user: [" << senderClient->getNickName() << "] is not an OP!\n";
         return ;
     }
-    std::cout << "kicck here\n";
     // check if the user exists in said channel, if not send error and return
     std::string victim = chan->isClientaMember(this->params[1]);
     if (victim == "") {
@@ -236,32 +252,43 @@ void    Command::kick(Client *senderClient, Server *serverInstance) {
         std::cout << "user: [" << senderClient->getNickName() << "] is not in channel!\n";
         return ;
     }
-    std::cout << "kicck here\n";
     // remove him, send a message on why he is being kicked-out!
-    std::cout << " >>>> set to remove: users before kick: [" << chan->getNumOfChanMembers() << "]\n";
     // send a notice (with reason) that he is being kicked out from a channel
-    /*
-        [:WiZ!jto@tolsun.oulu.fi KICK #Finnish John]
-        [:{ChanOp}!{username}@{hostname} KICK {chanName} victimNickName]
-            -> KICK message on channel #Finnish from WiZ to remove John from channel
-    */
     std::cout << " >>>> Before users kick: [" << chan->getNumOfChanMembers() << "]\n";
-    senderClient->removeClientFromChan(victim, serverInstance, chan);
-    std::cout << "user: [" << victim << "] got kicked out!\n";
+    std::string kickMsg = this->raw_cmd.substr(this->raw_cmd.find(':') + 1);
+    if (kickMsg == "")
+        kickMsg = victim;
+    std::string kickNotice = RPL_KICK(senderClient->getNickName(), senderClient->getUserName(), senderClient->getIpAddr(), chan->getChannelName(), victim, kickMsg);
     // inform all user of the channel that someone got kicked out !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     /* 
         << KICK #lef tesfa____ :
         >> :tesfa___!~dd@5.195.225.158 KICK #lef tesfa____ :tesfa___
+        :htg!~dd@5.195.225.158 KICK #ab42chan tesfa :bye bigman
      */
-    std::string kickMsg = this->raw_cmd.substr(this->raw_cmd.find(':'));
-    if (kickMsg == "")
-        kickMsg = victim;
-    
+    serverInstance->sendMessageToChan(chan, chanOp, kickNotice, true);
+    serverInstance->removeClientFromChan(victim, chan);    
     std::cout << " >>>> After users kick: [" << chan->getNumOfChanMembers() << "]\n";
 }
 
 
 void    Command::quit(Client *senderClient, Server *serverInstance) {
     std::cout << "++ before remove: " << serverInstance->getNumberOfClients() << " left in server\n";
-    serverInstance->removeClient(senderClient);
+
+    std::string quitMsg = RPL_QUIT(senderClient->getNickName(), senderClient->getUserName(), senderClient->getIpAddr(), this->raw_cmd);
+
+    serverInstance->removeClient(senderClient, quitMsg);
+}
+
+void    Command::partLeavChan(Client *senderClient, Server *serverInstance) {
+    /* :htg_!~dd@5.195.225.158 PART #gele */
+    Channel *chan = serverInstance->getChanByName(this->params[0]);
+    if (chan == NULL)
+        return ;
+    std::string reason = std::string("Default Leaving Reason");
+    if (this->raw_cmd.find(':') != std::string::npos)
+        reason = this->raw_cmd.substr(this->raw_cmd.find(':') + 1);
+    std::string partMsg = RPL_PART(senderClient->getNickName(), senderClient->getUserName(), senderClient->getIpAddr(), chan->getChannelName(), reason);
+    serverInstance->sendMessageToChan(chan, senderClient->getNickName(), partMsg, true);
+    serverInstance->removeClientFromChan(senderClient->getNickName(), chan);
+    return ;
 }

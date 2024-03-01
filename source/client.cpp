@@ -23,11 +23,9 @@ Client::Client(int clientFd, struct sockaddr *clientInfo){
         this->_port = ntohs(((struct sockaddr_in *)clientInfo)->sin_port);
         this->_clientInfo = clientInfo;
         this->_wrongPassCount = 0;
-    // std::cout << "Client Default constructor called!\n";
 }
 
 Client::~Client(void) {
-    // std::cout << "Client Destructor called!\n";
 }
 
 
@@ -81,10 +79,11 @@ void Client::setWrongPassCount(unsigned int value) {
     this->_wrongPassCount = value;
 }
 
-void      Client::removeClientFromChan(std::string victim, Server *serverInstance, Channel *chan) {
-    // delete a user from the channel
-    chan->deleteAMember(victim);
-    // (channel seize to exist if there is no user)
-    if (chan->getNumOfChanMembers() == 0)
-        serverInstance->deleteAChannel(chan);
+void  Client::addChannelNameToCollection(std::string chanName) {
+    this->_channelsJoined.insert(chanName);
+    std::cout << this->getNickName() << " is joined in " << this->_channelsJoined.size() << " channels\n";
+}
+
+std::set<std::string>& Client::getChannelsJoined(void) {
+    return (this->_channelsJoined);
 }

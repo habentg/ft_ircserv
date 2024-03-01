@@ -86,6 +86,6 @@ class Channel {
         std::string     isClientaMember(std::string clientNick) const;
         void            deleteAMember(std::string victim);
         void            insertToMemberFdMap(std::string nick, int fd);
-        void            sendToAllMembers(Server *serverInstance, std::string senderNick, Command *cmd);
+        void            sendToAllMembers(Server *serverInstance, std::string senderNick, std::string msg, bool chanNotice);
 };
 #endif // !CHANNEL_HPP

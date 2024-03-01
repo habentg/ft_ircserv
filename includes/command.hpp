@@ -24,6 +24,7 @@ class Command {
         std::string raw_cmd;
         Command(std::string rcved_cmd);
         ~Command(void);
+        /* COMMANDS */
         void    password(Client *client, Server* serverInstance);
         bool    nickname(Client *client, Server* serverInstance);
         void    user(Client *client, Server* serverInstance);
@@ -31,6 +32,7 @@ class Command {
         void    join(Client *senderClient, Server *serverInstance);
         void    kick(Client *senderClient, Server *serverInstance);
         void    quit(Client *senderClient, Server *serverInstance);
+        void    partLeavChan(Client *senderClient, Server *serverInstance);
 };
 
 size_t validNickName(std::vector<std::string> nick_params, int clientFd, Server* serverInstance, std::string cmdName);

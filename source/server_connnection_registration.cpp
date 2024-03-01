@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/28 12:54:51 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/02/28 13:46:03 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/01 10:58:32 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -91,7 +91,6 @@ void Server::userAuthenticationAndWelcome(Client* client, Command *command) {
         // if there is no serverOp, lets give him the honor
         if (this->_serverOperators.size() == 0)
             this->_serverOperators.insert("@%" + client->getNickName());
-        std::cout << "//////server Operator is: [" << *(this->_serverOperators.begin()) << "]//////\n";
         std::cout << "Client: " << client->getFd() << " is Connected!!\n";
     }
 }

@@ -60,8 +60,10 @@ class Server {
         void                        sendMsgToClient(int clientFd, std::string msg);
         void                        sendMsgToAllClients(std::string msg);
         void                        doStuff(Client* client, Command *command);
-        std::string                 constructReplayMsg(std::string senderNick, Client *senderClient, Command *cmd, std::string recieverNick);
-        void                        removeClient(Client *senderClient);
+        std::string                 constructReplayMsg(std::string senderNick, Client *senderClient, std::string recieverNick, std::string msgToSend);
+        void                        removeClient(Client *senderClient, std::string quitMsg);
+        std::string                 isClientServerOp(std::string nick);
+
         /* channel related methods */ // because its the duity of the server to do operation on the channel when a user requests with the key(chanName)
         void    channelRelatedOperations(Client* client, Command *command);
         
@@ -69,10 +71,11 @@ class Server {
         Channel   *getChanByName(std::string chanName);
         bool      doesChanExist(std::string chanName);
         void      deleteAChannel(Channel *chan);
+        void      removeClientFromChan(std::string victimNick, Channel *chan);
         size_t    numberOfChannels(void) {
             return this->_channels.size();
         }
-        void       sendMessageToChan(Channel *chan, Command *command, Client *client, std::string sender);
+        void       sendMessageToChan(Channel *chan, std::string sender, std::string msg, bool chanNotice);
         // void deleteChannel(std::string chanName);
         // void removeClientFromChan(Client *cl, Channel *chan); // inside this, if no user left delete the channel
         // gonna add more from here

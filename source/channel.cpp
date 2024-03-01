@@ -16,11 +16,9 @@ Channel::Channel(std::string chanName, Client *creator) {
     this->_chanName = chanName;
     this->_chanKey = "";
     this->_creator = creator->getNickName();
-    std::cout << "channel created!\n";
 }
 
 Channel::~Channel(void) {
-    std::cout << "channel Destructor Called!\n";
 }
 
 std::string Channel::getChannelName(void) const{
@@ -55,7 +53,7 @@ void            Channel::setChanKey(std::string newKey) {
 
 void            Channel::makeClientChanOp(std::string clientNick) {
     this->_chanOps.insert("@" + clientNick);
-    std::cout << "--> " +clientNick+"is a chanOp now!\n";
+    std::cout << "--> [" +clientNick+"] is a chanOp now!\n";
     // I will see how to display this modified nick name on the client side (related to mode maybe)
 }
 
@@ -78,29 +76,29 @@ std::string    Channel::isClientaMember(std::string clientNick) const {
 }
 
 void     Channel::deleteAMember(std::string victim) {
-    this->_members.erase(victim);
-    this->_member_fd_map.erase(victim);
+    std::string vic = this->isClientaMember(victim);
+    if (vic == "")
+        return ;
+    this->_members.erase(vic);
+    this->_member_fd_map.erase(vic);
 }
 
 void    Channel::insertToMemberFdMap(std::string nick, int fd) {
     this->_member_fd_map.insert(std::make_pair(nick, fd));
 }
 
- void            Channel::sendToAllMembers(Server *serverInstance, std::string senderNick, Command *cmd) {
-    std::cout << "HERE is sender NICK: [" << senderNick << "] && we have: {"<<this->getNumOfChanMembers()<<"} members\n";
+ void            Channel::sendToAllMembers(Server *serverInstance, std::string senderNick, std::string msg, bool chanNotice) {
     Client *senderClient = serverInstance->getClientByNick(senderNick);
     if (senderClient == NULL) {
-        std::cout << "no sender or some\n";
         return ;
     }
     std::map<std::string, int>::iterator m_it = this->_member_fd_map.begin();
-    
     for (; m_it != this->_member_fd_map.end(); ++m_it) {
         Client *recvClient = serverInstance->getClientByNick((*m_it).first);
-        if (senderClient->getFd() == recvClient->getFd())
-            continue ;
-        std::string msg = serverInstance->constructReplayMsg(senderNick, senderClient, cmd, this->getChannelName());
-        serverInstance->sendMsgToClient(recvClient->getFd(), msg);
+        if (chanNotice == true)
+            serverInstance->sendMsgToClient(recvClient->getFd(), msg);
+        else if (senderClient->getFd() != recvClient->getFd())
+            serverInstance->sendMsgToClient(recvClient->getFd(), serverInstance->constructReplayMsg(senderNick, senderClient, this->getChannelName(), msg));
         recvClient = NULL;
     }
  }
