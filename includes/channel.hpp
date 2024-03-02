@@ -74,18 +74,19 @@ class Channel {
         Channel(std::string chanName, Client *creator);
         ~Channel();
         // members
-        size_t          getNumOfChanMembers(void) const;
-        std::string     getChannelName(void) const;
-        void            addMember(std::string clientNick);
-        void            deleteMember(std::string clientNick);
-        bool            doesClientAlreadyAMember(std::string clientNick);
-        std::string     getChanKey(void) const;
-        void            setChanKey(std::string newKey);
-        void            makeClientChanOp(std::string clientNick);
-        std::string     isClientChanOp(std::string clientNick) const;
-        std::string     isClientaMember(std::string clientNick) const;
-        void            deleteAMember(std::string victim);
-        void            insertToMemberFdMap(std::string nick, int fd);
-        void            sendToAllMembers(Server *serverInstance, std::string senderNick, std::string msg, bool chanNotice);
+        size_t                  getNumOfChanMembers(void) const;
+        std::string             getChannelName(void) const;
+        void                    addMember(std::string clientNick);
+        void                    deleteMember(std::string clientNick);
+        bool                    doesClientAlreadyAMember(std::string clientNick);
+        std::string             getChanKey(void) const;
+        void                    setChanKey(std::string newKey);
+        void                    makeClientChanOp(std::string clientNick);
+        std::string             isClientChanOp(std::string clientNick) const;
+        std::string             isClientaMember(std::string clientNick) const;
+        void                    deleteAMember(std::string victim);
+        void                    insertToMemberFdMap(std::string nick, int fd);
+        void                    sendToAllMembers(Server *serverInstance, std::string senderNick, std::string msg, bool chanNotice);
+        std::set<std::string>&  getAllMembersNick();
 };
 #endif // !CHANNEL_HPP

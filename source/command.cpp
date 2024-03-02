@@ -185,7 +185,7 @@ void    Command::join(Client *client, Server *serverInstance) {
     Channel *chann = serverInstance->getChanByName(validChanName);
     if (chann == NULL)
     {
-        serverInstance->createChannel(validChanName, client);
+        serverInstance->createChannel(validChanName, client, this);
         return ;
     }
     // if that channel exists:
@@ -198,23 +198,17 @@ void    Command::join(Client *client, Server *serverInstance) {
     */
     client->addChannelNameToCollection(chann->getChannelName());
     /* sending notices that a client has joined */
-    std::string letThemKnow = RPL_JOIN(client->getNickName(), client->getUserName(), client->getIpAddr(), chann->getChannelName());
-    serverInstance->sendMsgToClient(client->getFd(), letThemKnow);
-    serverInstance->sendMessageToChan(chann, client->getNickName(), letThemKnow, true);
     /* 
-        << JOIN #habeChan1
-        >> :habentes1a!~hy@bba-92-99-114-94.alshamil.net.ae JOIN #habeChan1
-        >> :euroserv.fr.quakenet.org 353 habentes1a = #habeChan1 :habentes1a habentesfa @habentes2a
-        >> :euroserv.fr.quakenet.org 366 habentes1a #habeChan1 :End of /NAMES list.
+    // after creation of channel, these should be displayed on the channel window.
+        06:32 -!- tesfa__ [~dd@5.195.225.158] has joined #ullaMo
+        06:32 [Users #ullaMo]
+        06:32 [@tesfa__]
+        06:32 -!- Irssi: #ullaMo: Total of 1 nicks [1 ops, 0 halfops, 0 voices, 0 normal]
+        06:32 -!- Channel #ullaMo created Tue Feb 27 06:32:49 2024
     */
-    /* 
-        -> /NAMES - I have to figure out how to list all the mames in channel and send it to the joiner client in the channel window
-        06:42 [Users #42chan]
-        06:42 [@tesfa] [ htg]
-        06:42 -!- Irssi: #42chan: Total of 2 nicks [1 ops, 0 halfops, 0 voices, 1 normal]
-     */
-    // serverInstance->sendMsgToClient(client->getFd(), RPL_NAMREPLY(serverInstance->getServerHostName(), client->getNickName(), chann->getChannelName()));
-    // serverInstance->sendMsgToClient(client->getFd(), RPL_ENDOFNAMES(serverInstance->getServerHostName(), client->getNickName(), chann->getChannelName()));
+    std::string letThemKnow = RPL_JOIN(client->getNickName(), client->getUserName(), client->getIpAddr(), chann->getChannelName());
+    serverInstance->sendMessageToChan(chann, client->getNickName(), letThemKnow, true);
+    this->names(client, serverInstance);
 
     std::cout << "Added {"<<client->getNickName()<<"} to <"<<chann->getChannelName()<<"> has : " <<chann->getNumOfChanMembers()<<" members now\n";
 }
@@ -291,4 +285,34 @@ void    Command::partLeavChan(Client *senderClient, Server *serverInstance) {
     serverInstance->sendMessageToChan(chan, senderClient->getNickName(), partMsg, true);
     serverInstance->removeClientFromChan(senderClient->getNickName(), chan);
     return ;
+}
+
+void Command::names(Client *client, Server *serverInstance) {
+    if (this->params.size() != 1) {
+        serverInstance->sendMsgToClient(client->getFd(), ERR_NEEDMOREPARAMS(serverInstance->getServerHostName(), std::string("NAMES")));
+        return;
+    }
+    // Find the channel object based on the channel name
+    std::string channelName = this->params[0];
+    Channel *channel = serverInstance->getChanByName(channelName);
+    if (channel == NULL) { // If channel doesn't exist, send error message to client
+        serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getServerHostName(), client->getNickName(), channelName));
+        return;
+    }
+    // Get the list of nicknames in the channel
+    std::set<std::string> nicknames = channel->getAllMembersNick(); // I USED reference (des kbleka ile tomas)
+
+    std::string namesReply = RPL_NAMES(serverInstance->getServerHostName(), client->getNickName(), channelName);
+    std::set<std::string>::iterator it = nicknames.begin();
+    // Construct the NAMES reply message
+    for (; it != nicknames.end(); ++it) {
+        namesReply += (*it) + " ";
+    }
+    namesReply += "\r\n";
+
+    // Send the NAMES reply message to the client
+    serverInstance->sendMsgToClient(client->getFd(), namesReply);
+
+    // Send the /END of NAMES reply message
+    serverInstance->sendMsgToClient(client->getFd(), RPL_ENDOFNAMES(serverInstance->getServerHostName(), client->getNickName(), channelName));
 }

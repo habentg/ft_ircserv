@@ -49,7 +49,6 @@ int main(int ac, char **av) {
                 for (; it != serverObj.getFdArray().end(); ++it) {
                     if ((*it).revents == POLLIN) {
                         serverObj.recieveMsg((*it).fd); // we will "read" from that fd
-                        break ;
                     }
                 }
             }

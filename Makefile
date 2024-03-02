@@ -19,7 +19,7 @@ CXXFLAGS	= -Wall -Werror -Wextra -std=c++98
 RM 			= rm -rf
 
 # Source files:
-SRC = $(addprefix source/, server.cpp utils.cpp channel.cpp client.cpp main.cpp command.cpp server_connnection_registration.cpp)
+SRC = $(addprefix source/, server.cpp utils.cpp channel.cpp client.cpp main.cpp command.cpp server_connnection_registration.cpp channel_modes.cpp)
 
 # Object files directory:
 OBJ = obj

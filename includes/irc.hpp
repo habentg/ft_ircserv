@@ -79,13 +79,12 @@
 /* REPLAY */
 #define userHostMask(senderNick, senderUsername, clientIp)                      std::string(":"+senderNick+"!"+senderUsername+"@"+clientIp)
 #define PRIVMSG_RPLY(senderNick, senderUsername, clientIp, revieverNick, msg)   std::string(userHostMask(senderNick, senderUsername, clientIp)+" PRIVMSG "+revieverNick+" :"+msg+"\r\n")
-#define RPL_JOIN(senderNick, senderUsername, clientIp, chanName)               std::string(userHostMask(senderNick, senderUsername, clientIp)+" JOIN "+chanName+"\r\n")
-#define RPL_NAMREPLY(hostname, nickname, chanName)                  std::string(":"+hostname+" 353 "+nickname+" = "+chanName+" :@"+nickname+"\r\n")
-#define RPL_ENDOFNAMES(hostname, nickname, chanName)                std::string(":"+hostname+" 366 "+nickname+" "+chanName+" :End of /NAMES list.\r\n")
-#define RPL_KICK(k_nick, k_username, k_ip, chanName, victim, kickMsg) std::string(userHostMask(k_nick, k_username, k_ip)+" KICK "+chanName+" "+victim+" :"+kickMsg+"\r\n")
-#define RPL_QUIT(q_nick, q_username, q_ip, quitMsg) std::string(userHostMask(q_nick, q_username, q_ip)+" QUIT :"+quitMsg+"\r\n")
-#define RPL_PART(q_nick, q_username, q_ip, chanName, partMsg) std::string(userHostMask(q_nick, q_username, q_ip)+" PART "+chanName+" :"+partMsg+"\r\n")
-
+#define RPL_JOIN(senderNick, senderUsername, clientIp, chanName)                std::string(userHostMask(senderNick, senderUsername, clientIp)+" JOIN "+chanName+"\r\n")
+#define RPL_KICK(k_nick, k_username, k_ip, chanName, victim, kickMsg)           std::string(userHostMask(k_nick, k_username, k_ip)+" KICK "+chanName+" "+victim+" :"+kickMsg+"\r\n")
+#define RPL_QUIT(q_nick, q_username, q_ip, quitMsg)                             std::string(userHostMask(q_nick, q_username, q_ip)+" QUIT :"+quitMsg+"\r\n")
+#define RPL_PART(q_nick, q_username, q_ip, chanName, partMsg)                   std::string(userHostMask(q_nick, q_username, q_ip)+" PART "+chanName+" :"+partMsg+"\r\n")
+#define RPL_NAMES(hostname, nick, chanName)                                     std::string(":" + hostname + " 353 " + nick + " = " + chanName + " :")
+#define RPL_ENDOFNAMES(hostname, nickname, chanName)                            std::string(":"+hostname+" 366 "+nickname+" "+chanName+" :End of /NAMES list.\r\n")
 
 /* Error responses */
 # define INCORRECT_ARGS "Error: Incorrect Numner of arguments!!\n    Usage: ./ft_ircserv <port number <password>"

@@ -67,7 +67,7 @@ class Server {
         /* channel related methods */ // because its the duity of the server to do operation on the channel when a user requests with the key(chanName)
         void    channelRelatedOperations(Client* client, Command *command);
         
-        void      createChannel(std::string chanName, Client *creator); // gonna call the constructor of the channel class
+        void      createChannel(std::string chanName, Client *creator, Command *command); // gonna call the constructor of the channel class
         Channel   *getChanByName(std::string chanName);
         bool      doesChanExist(std::string chanName);
         void      deleteAChannel(Channel *chan);

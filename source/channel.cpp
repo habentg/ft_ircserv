@@ -102,3 +102,7 @@ void    Channel::insertToMemberFdMap(std::string nick, int fd) {
         recvClient = NULL;
     }
  }
+
+ std::set<std::string>& Channel::getAllMembersNick() {
+    return this->_members;
+ }

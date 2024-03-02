@@ -225,7 +225,7 @@ void Server::removeClient(Client *cl, std::string quitMsg) {
         06:32 -!- Channel #ullaMo created Tue Feb 27 06:32:49 2024
  */
 
-void    Server::createChannel(std::string chanName, Client *creator) {
+void    Server::createChannel(std::string chanName, Client *creator, Command *command) {
     Channel* newChan = new Channel(chanName, creator);
     this->_channels.insert(std::make_pair(chanName, newChan));
     newChan->makeClientChanOp(creator->getNickName());
@@ -240,8 +240,7 @@ void    Server::createChannel(std::string chanName, Client *creator) {
         >> :hostsailor.ro.quakenet.org 366 tesfa___ #lef :End of /NAMES list.
     */
    this->sendMsgToClient(creator->getFd(), RPL_JOIN(creator->getNickName(), creator->getUserName(), creator->getIpAddr(), chanName));
-   this->sendMsgToClient(creator->getFd(), RPL_NAMREPLY(this->getServerHostName(), creator->getNickName(), chanName));
-   this->sendMsgToClient(creator->getFd(), RPL_ENDOFNAMES(this->getServerHostName(), creator->getNickName(), chanName));
+   command->names(creator, this);
 }
 
 bool      Server::doesChanExist(std::string chanName) {
