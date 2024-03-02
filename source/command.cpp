@@ -71,6 +71,7 @@ size_t validNickName(std::vector<std::string> nick_params, int clientFd, Server*
         return 0;
     }
     size_t  valid_index = 0;
+    /* Use find first instead of all the '||'s */
     if ((valid_index = nick.find(',')) != std::string::npos || (valid_index = nick.find('?')) != std::string::npos || \
         (valid_index = nick.find('@')) != std::string::npos || (valid_index = nick.find('!')) != std::string::npos || \
         (valid_index = nick.find('*')) != std::string::npos || (valid_index = nick.find('.')) != std::string::npos || \

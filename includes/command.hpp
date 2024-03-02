@@ -34,6 +34,9 @@ class Command {
         void    quit(Client *senderClient, Server *serverInstance);
         void    partLeavChan(Client *senderClient, Server *serverInstance);
         void    names(Client *client, Server *serverInstance);
+        void    mode(Client *client, Server *serverInstance);
+        void    mode_channel(Client *client, Server* serverInstance);
+        void    mode_user(Client *client, Server* serverInstance);
 };
 
 size_t validNickName(std::vector<std::string> nick_params, int clientFd, Server* serverInstance, std::string cmdName);

@@ -69,7 +69,6 @@ class Server {
         
         void      createChannel(std::string chanName, Client *creator, Command *command); // gonna call the constructor of the channel class
         Channel   *getChanByName(std::string chanName);
-        bool      doesChanExist(std::string chanName);
         void      deleteAChannel(Channel *chan);
         void      removeClientFromChan(std::string victimNick, Channel *chan);
         size_t    numberOfChannels(void) {

@@ -196,6 +196,7 @@ void Server::removeClient(Client *cl, std::string quitMsg) {
         */
         this->sendMessageToChan(chan, cl->getNickName(), quitMsg, true);
         this->removeClientFromChan(cl->getNickName(), chan);
+        chan = NULL;
     }
     this->_clients.erase(cl->getFd()); // remove the client from the map
     this->_nick_fd_map.erase(cl->getNickName());
@@ -243,15 +244,6 @@ void    Server::createChannel(std::string chanName, Client *creator, Command *co
    command->names(creator, this);
 }
 
-bool      Server::doesChanExist(std::string chanName) {
-    if (this->_channels.size() == 0)
-        return false;
-    std::map<std::string, Channel *>::iterator it = this->_channels.lower_bound(chanName);
-    if ((*it).first != chanName)
-        return false;
-    return (true);
-}
-
 Channel   *Server::getChanByName(std::string chanName) {
     if (this->_channels.size() == 0) {
         return NULL;
@@ -273,7 +265,6 @@ Channel   *Server::getChanByName(std::string chanName) {
  }
 
 void    Server::deleteAChannel(Channel *chan) {
-    // we will see if we manually have to remove all members first!
     this->_channels.erase(chan->getChannelName()); // remove it from the map
     delete chan; // destruct it
 }
@@ -294,6 +285,8 @@ void    Server::channelRelatedOperations(Client* client, Command *command) {
         command->kick(client, this);
     else if (command->cmd == "PART")
         command->partLeavChan(client, this);
+    else if (command->cmd == "MODE")
+        command->mode(client, this);
 }
 
 /* Connected Client can DO these stuff basicly:
@@ -309,7 +302,6 @@ void Server::doStuff(Client* client, Command *command) {
         this->sendMsgToClient(client->getFd(), PONG(this->getServerHostName()));
         return ;
     }
-    std::cout << "Full-msg: {" << command->raw_cmd << "}\n";
     if (command->cmd == "PRIVMSG") {
         command->privmsg(client, this);
         return ;
@@ -318,8 +310,9 @@ void Server::doStuff(Client* client, Command *command) {
         command->quit(client, this);
         return ;
     }
+    std::cout << "--> Full-CMD: {" << command->raw_cmd << "} <--\n";
     /* Channel and channel related features --- big job */
-    if (command->cmd == "JOIN" || command->cmd == "KICK" || command->cmd == "INVITE" || command->cmd == "TOPIC" || command->cmd == "MODE" || command->cmd == "PART") {
+    if (command->cmd == "JOIN" || command->cmd == "KICK" || command->cmd == "MODE" || command->cmd == "PART" || command->cmd == "INVITE" || command->cmd == "TOPIC") {
         this->channelRelatedOperations(client, command);
         return ;
     }
