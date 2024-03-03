@@ -16,6 +16,7 @@ Channel::Channel(std::string chanName, Client *creator) {
     this->_chanName = chanName;
     this->_chanKey = "";
     this->_creator = creator->getNickName();
+    this->_chanLimit = 0;
 }
 
 Channel::~Channel(void) {
@@ -106,3 +107,27 @@ void    Channel::insertToMemberFdMap(std::string nick, int fd) {
  std::set<std::string>& Channel::getAllMembersNick() {
     return this->_members;
  }
+
+ void       Channel::setUsersLimit(int num) {
+    this->_chanLimit = static_cast<unsigned int>(num);
+ }
+
+std::set<char>&        Channel::getChannelModes() {
+    return this->_chanModes;
+}
+
+bool                    Channel::isModeOn(char mode) {
+    std::set<char>::iterator it = this->getChannelModes().find(mode);
+    if (it == this->getChannelModes().end()) {
+        return (false);
+    }
+    return true;
+}
+
+unsigned int       Channel::getUsersLimit(void) {
+    return (this->_chanLimit);
+}
+
+std::set<std::string>&  Channel::getAllChanOps(void) {
+    return (this->_chanOps);
+}

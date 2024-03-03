@@ -14,7 +14,7 @@
 
 Command::Command(std::string rcved_cmd) {
     this->raw_cmd = rcved_cmd;
-    std::vector<std::string> cmd_arr = split(rcved_cmd, ' ');
+    std::vector<std::string> cmd_arr = split(rcved_cmd, ' ', '\0');
     std::vector<std::string>::iterator iter = cmd_arr.begin();
     this->cmd = cmd_arr[0];
     this->params.insert(this->params.end(), cmd_arr.begin() + 1, cmd_arr.end());
@@ -174,7 +174,7 @@ void Command::privmsg(Client *senderClient, Server *serverInstance) {
 */
 
 void    Command::join(Client *client, Server *serverInstance) {
-    if (this->params.size() != 1 || this->params[0][0] != '#' || this->params[0].find(',') != std::string::npos || this->params[0].find(7) != std::string::npos) {
+    if (this->params[0][0] != '#' || this->params[0].find(',') != std::string::npos || this->params[0].find(7) != std::string::npos) {
         // incase of a channel name having a space, we can reconstruct the "name" but I am lazy now!
         //{:adrift.sg.quakenet.org 403 tesfa #fhfjk :No such channel}
         serverInstance->sendMsgToClient(client->getFd(), ERR_BADCHANMASK(serverInstance->getServerHostName(), client->getNickName()));
@@ -189,24 +189,22 @@ void    Command::join(Client *client, Server *serverInstance) {
         serverInstance->createChannel(validChanName, client, this);
         return ;
     }
-    // if that channel exists:
-        // add him, if he is not already there
+    /* before joining him to channel -- we have to check if he has a correct key and if the user limit of the channel is reached (both of them if nessesaary) */
+    if (chann->isModeOn('k') || chann->isModeOn('l'))
+    {
+        if (this->params.size() == 1 || (this->params[1] != chann->getChanKey())){// he came without key or there is key mismatch
+            serverInstance->sendMsgToClient(client->getFd(), ERR_BADCHANNELKEY(serverInstance->getServerHostName(), client->getNickName(), chann->getChannelName()));
+            return ;
+        }
+        if (chann->isModeOn('l') && chann->getNumOfChanMembers() == chann->getUsersLimit()) {
+            serverInstance->sendMsgToClient(client->getFd(), ERR_CHANNELISFULL(serverInstance->getServerHostName(), client->getNickName(), chann->getChannelName()));
+            return ;
+        }
+        // at this point he got the correct key and channel user limmit hasnt been reached yet
+    }
     chann->addMember(client->getNickName());
-    /* we add the client nickname and fd to our lookup table */
     chann->insertToMemberFdMap(client->getNickName(), client->getFd());
-    /* we add the channel name to the clients collection of joined channesl,
-        may be we can put a limmit to how many channels one client can join
-    */
     client->addChannelNameToCollection(chann->getChannelName());
-    /* sending notices that a client has joined */
-    /* 
-    // after creation of channel, these should be displayed on the channel window.
-        06:32 -!- tesfa__ [~dd@5.195.225.158] has joined #ullaMo
-        06:32 [Users #ullaMo]
-        06:32 [@tesfa__]
-        06:32 -!- Irssi: #ullaMo: Total of 1 nicks [1 ops, 0 halfops, 0 voices, 0 normal]
-        06:32 -!- Channel #ullaMo created Tue Feb 27 06:32:49 2024
-    */
     std::string letThemKnow = RPL_JOIN(client->getNickName(), client->getUserName(), client->getIpAddr(), chann->getChannelName());
     serverInstance->sendMessageToChan(chann, client->getNickName(), letThemKnow, true);
     this->names(client, serverInstance);
@@ -289,10 +287,6 @@ void    Command::partLeavChan(Client *senderClient, Server *serverInstance) {
 }
 
 void Command::names(Client *client, Server *serverInstance) {
-    if (this->params.size() != 1) {
-        serverInstance->sendMsgToClient(client->getFd(), ERR_NEEDMOREPARAMS(serverInstance->getServerHostName(), std::string("NAMES")));
-        return;
-    }
     // Find the channel object based on the channel name
     std::string channelName = this->params[0];
     Channel *channel = serverInstance->getChanByName(channelName);

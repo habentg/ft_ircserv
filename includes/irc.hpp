@@ -64,17 +64,24 @@
 #define ERR_NICKNAMEINUSE(hostname, nickname)                       std::string(":"+hostname+" 433 * "+nickname +" :Nickname already in use\r\n")
 #define ERR_ERRONEUSNICKNAME(hostname)                              std::string(":"+hostname+" 432 :you have characters in your nickname that are not supported in our server\r\n")
 #define ERR_NONICKNAMEGIVEN(hostname)                               std::string(":"+hostname+" 431 :you havent provided with a nickname yet\r\n")
-#define ERR_NOSUCHNICK(hostname, nickname, rcvNick)                          std::string(":"+hostname+" 401 "+nickname+rcvNick+" :No such user in our server\r\n")
+/*  
+    << MODE #habexirc +o tesfazgi
+    >> :hostsailor.ro.quakenet.org 401 gaim tesfazgi :No such nick
+*/
+#define ERR_NOSUCHNICK(hostname, nickname, rcvNick)                          std::string(":"+hostname+" 401 "+nickname+rcvNick+" :No such user\r\n")
 #define ERR_NOTEXTTOSEND(hostname)                                  std::string(":"+hostname+" 412 :No text to send\r\n")
 #define ERR_REGISTER_FIRST(hostname)                                std::string(":"+hostname+" 451 * :Register first\r\n")
 #define ERR_NOPRIVILEGES(hostname, nickname)                        std::string(":"+hostname+" 481 "+nickname+" :Permission to KILL a user DENAID, You aint an Server-OP!\r\n")
-#define ERR_BADCHANNELKEY(hostname, nickname)                       std::string(":"+hostname+" 475 "+nickname+" :channel key mismatch\r\n")
+/* >> :hostsailor.ro.quakenet.org 471 a__ #habexirc :Cannot join channel, Channel is full (+l) */
+#define ERR_CHANNELISFULL(hostname, nickname, chanName)             std::string(":"+hostname+" 471 "+nickname+" "+chanName+" :channel is FULL (+i)\r\n")
+/* >> :hostsailor.ro.quakenet.org 475 gaim #new42chan :Cannot join channel, you need the correct key (+k) */
+#define ERR_BADCHANNELKEY(hostname, nickname, chanName)             std::string(":"+hostname+" 475 "+nickname+" "+chanName+" :You need a channel key to join (+k)\r\n")
 #define ERR_BADCHANMASK(hostname, nickname)                         std::string(":"+hostname+" 476 "+nickname+" :invalid channel name\r\n")
 #define ERR_CHANOPRIVSNEEDED(hostname, nickname, chanName)                    std::string(":"+hostname+" 482 "+nickname+chanName+" :you are not channel OP\r\n")
 #define ERR_NOSUCHCHANNEL(hostname, nickname, chanName)                       std::string(":"+hostname+" 403 "+nickname+chanName+" :no such channel\r\n")
 #define ERR_YouIsNotInCHANNEL(hostname, nickname, chanName)         std::string(":"+hostname+" 442 "+nickname+chanName+" :you are not in channel, so you cant send\r\n")
 #define ERR_USERNOTINCHANNEL(hostname, nickname, chanName)         std::string(":"+hostname+" 441 "+nickname+chanName+" :user is is not in channel\r\n")
-
+#define ERR_CHANKEYALREADYSET(hostname, nickname, chanName)             std::string(":"+hostname+" 467 "+nickname+" "+chanName+" :Channel key is already set (+k)\r\n")
 
 /* REPLAY */
 #define userHostMask(senderNick, senderUsername, clientIp)                      std::string(":"+senderNick+"!"+senderUsername+"@"+clientIp)
@@ -85,6 +92,10 @@
 #define RPL_PART(q_nick, q_username, q_ip, chanName, partMsg)                   std::string(userHostMask(q_nick, q_username, q_ip)+" PART "+chanName+" :"+partMsg+"\r\n")
 #define RPL_NAMES(hostname, nick, chanName)                                     std::string(":" + hostname + " 353 " + nick + " = " + chanName + " :")
 #define RPL_ENDOFNAMES(hostname, nickname, chanName)                            std::string(":"+hostname+" 366 "+nickname+" "+chanName+" :End of /NAMES list.\r\n")
+#define RPL_MODES(nick, username, clientIp, chanName, msg)                                std::string(userHostMask(nick, username, clientIp)+" MODE "+chanName+" "+msg+"\r\n")
+#define RPL_CHANNELMODEIS(hostname, nick, chanName, msg)                                std::string(":"+hostname+" 324 "+nick+" "+chanName+" "+msg+"\r\n")
+/* >> :gaim!~dd@5.195.225.158 MODE #habexirc -o tesfa */
+#define RPL_OPERATORGIVEREVOKE(op_nick, op_username, op_ip, chanName, optype, newopnick)  std::string(userHostMask(op_nick, op_username, op_ip)+" MODE "+chanName+" "+optype+" "+newopnick+"\r\n")
 
 /* Error responses */
 # define INCORRECT_ARGS "Error: Incorrect Numner of arguments!!\n    Usage: ./ft_ircserv <port number <password>"
@@ -100,7 +111,7 @@
 
 
 unsigned short int          validate_input(int ac, char **av);
-std::vector<std::string>    split(std::string& str, char delimiter);
+std::vector<std::string>    split(std::string& str, char delimiter, char delimiter_two);
 void                        printVector(std::vector<std::string> vec);
 std::string                 lowerCaseString(std::string str);
 

@@ -373,7 +373,7 @@ void Server::recieveMsg(int clientFd) {
             If you encounter an empty message, silently ignore it.
         */
         std::string msg = std::string(buffer);
-        std::vector<std::string> arr_of_cmds = split(msg, '\0');
+        std::vector<std::string> arr_of_cmds = split(msg, '\0', '\0');
         std::vector<std::string>::iterator it = arr_of_cmds.begin();
         for (; it != arr_of_cmds.end(); ++it) {
             Command *command = new Command((*it));

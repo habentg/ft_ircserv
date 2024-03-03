@@ -70,6 +70,7 @@ class Channel {
         std::map<std::string, int>      _member_fd_map; // nickname-fd map, to optimize client look up for sending
         std::set<std::string>           _chanOps;
         std::set<char>                  _chanModes;
+        unsigned int                    _chanLimit;
     public:
         Channel(std::string chanName, Client *creator);
         ~Channel();
@@ -80,7 +81,6 @@ class Channel {
         void                    deleteMember(std::string clientNick);
         bool                    doesClientAlreadyAMember(std::string clientNick);
         std::string             getChanKey(void) const;
-        void                    setChanKey(std::string newKey);
         void                    makeClientChanOp(std::string clientNick);
         std::string             isClientChanOp(std::string clientNick) const;
         std::string             isClientaMember(std::string clientNick) const;
@@ -88,5 +88,11 @@ class Channel {
         void                    insertToMemberFdMap(std::string nick, int fd);
         void                    sendToAllMembers(Server *serverInstance, std::string senderNick, std::string msg, bool chanNotice);
         std::set<std::string>&  getAllMembersNick();
+        void                    setChanKey(std::string newKey);
+        void                    setUsersLimit(int num);
+        unsigned int            getUsersLimit(void);
+        std::set<char>&         getChannelModes();
+        bool                    isModeOn(char mode);
+        std::set<std::string>&  getAllChanOps();
 };
 #endif // !CHANNEL_HPP
