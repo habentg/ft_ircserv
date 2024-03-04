@@ -46,10 +46,17 @@ int main(int ac, char **av) {
             } else {
                 // we have to indetify the fd the event occured so we can "recv".
                 std::vector<pollfd>::iterator it = serverObj.getFdArray().begin();
-                for (; it != serverObj.getFdArray().end(); ++it) {
-                    if ((*it).revents == POLLIN) {
-                        serverObj.recieveMsg((*it).fd); // we will "read" from that fd
+                std::cout << "lesgoooo - 1\n";
+                size_t numboffds = serverObj.getFdArray().size();
+                size_t i = 1;
+                while (i < numboffds){
+                    if (serverObj.getFdArray()[i].revents == POLLIN) {
+                        std::cout << "lesgoooo - 2\n";
+                        serverObj.recieveMsg(serverObj.getFdArray()[i].fd); // we will "read" from that fd
+                        std::cout << "lesgoooo - 3\n";
                     }
+                    numboffds = serverObj.getFdArray().size();
+                    i++;
                 }
             }
         }

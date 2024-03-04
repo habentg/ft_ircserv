@@ -294,14 +294,21 @@ void Command::names(Client *client, Server *serverInstance) {
         serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getServerHostName(), client->getNickName(), channelName));
         return;
     }
-    // Get the list of nicknames in the channel
-    std::set<std::string> nicknames = channel->getAllMembersNick(); // I USED reference (des kbleka ile tomas)
-
+    // Get the list of nicknames
+    // the Op's first
+    std::set<std::string> opNicks = channel->getAllChanOps();
     std::string namesReply = RPL_NAMES(serverInstance->getServerHostName(), client->getNickName(), channelName);
-    std::set<std::string>::iterator it = nicknames.begin();
+    std::set<std::string>::iterator it = opNicks.begin();
     // Construct the NAMES reply message
-    for (; it != nicknames.end(); ++it) {
+    for (; it != opNicks.end(); ++it) {
         namesReply += (*it) + " ";
+    }
+    // then the normal members
+    std::set<std::string> nicknames = channel->getAllMembersNick(); // I USED reference (des kbleka ile tomas)
+    std::set<std::string>::iterator it_n = nicknames.begin();
+    for (; it_n != nicknames.end(); ++it_n) {
+        if (channel->isClientChanOp((*it_n)) == "")
+            namesReply += (*it_n) + " ";
     }
     namesReply += "\r\n";
 

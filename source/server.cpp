@@ -361,9 +361,7 @@ void Server::recieveMsg(int clientFd) {
 
     std::memset(buffer, 0, buffer_size);
     int bytes_received = recv(clientFd, buffer, buffer_size, 0);
-    if (bytes_received == -1)
-        throw std::runtime_error("Error: Receiving message from client");
-    else if (bytes_received == 0)
+    if (bytes_received < 1)
         return ;
     buffer[bytes_received] = '\0'; // Null-terminate the received data coz recv() doesnt 
     try

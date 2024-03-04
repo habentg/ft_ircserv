@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 09:45:02 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/03/03 18:33:48 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/04 18:39:16 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,11 +25,12 @@
 */
 /* command format to expect: -> [ MODE <target> <+/-mode> ... ] */
 void Command::mode(Client *client, Server* serverInstance) {
+    // 
     if (this->params[0][0] == '#') {
         if (this->params.size() == 1) {
             Channel *chan = serverInstance->getChanByName(this->params[0]);
             if (chan == NULL)
-                return (serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getServerHostName(), client->getNickName(), chan->getChannelName())));
+                return (serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getServerHostName(), client->getNickName(), this->params[0])));
             std::string modesOn = "+";
             std::set<char>::iterator it = chan->getChannelModes().begin();
             for (; it != chan->getChannelModes().end(); ++it)
@@ -135,22 +136,19 @@ bool    Command::mode_o(Channel *chan, Client *client, Server* serverInstance) {
             return true;
         std::string modeRply = RPL_OPERATORGIVEREVOKE(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getChannelName(), "+o", this->params[2]);
         serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
-        chan->getAllChanOps().insert("@" + client->getNickName());
+        std::cout << "num of chanOps: " << chan->getAllChanOps().size() << std::endl;
+        chan->getAllChanOps().insert("@" + groom);
+        std::cout << "num of chanOps: " << chan->getAllChanOps().size() << std::endl;
         return true;
     }
     if (this->params[1] == "-o") {
         if (chan->isClientChanOp(groom) == "") // if he is a groom is not OP, we just ignore
         {
-            std::cout << "===> exiting outta this!!!\n";
             return true;
         }
-            std::cout << "===> exiting outta this!!!\n";
         std::string modeRply = RPL_OPERATORGIVEREVOKE(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getChannelName(), "-o", this->params[2]);
-            std::cout << "===> exiting outta this!!!\n";
         serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
-            std::cout << "===> exiting outta this!!!\n";
-        chan->getAllChanOps().erase("@" + client->getNickName());
-            std::cout << "===> exiting outta this!!!\n";
+        chan->getAllChanOps().erase("@" + groom);
     }
     return false;
 }
