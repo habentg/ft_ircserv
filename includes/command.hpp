@@ -35,6 +35,7 @@ class Command {
         void    partLeavChan(Client *senderClient, Server *serverInstance);
         void    names(Client *client, Server *serverInstance);
         void    mode(Client *client, Server *serverInstance);
+        void    invite(Client *client, Server *serverInstance);
         bool    mode_channel(Client *client, Server* serverInstance);
         void    mode_user(Client *client, Server* serverInstance);
         bool    mode_i(Channel *chan, Client *client, Server* serverInstance);

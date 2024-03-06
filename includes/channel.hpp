@@ -71,6 +71,8 @@ class Channel {
         std::set<std::string>           _chanOps;
         std::set<char>                  _chanModes;
         unsigned int                    _chanLimit;
+        bool                            _isChanInv;
+        std::set<std::string>           _invitedUser;
     public:
         Channel(std::string chanName, Client *creator);
         ~Channel();
@@ -94,5 +96,8 @@ class Channel {
         std::set<char>&         getChannelModes();
         bool                    isModeOn(char mode);
         std::set<std::string>&  getAllChanOps();
+        bool                    isChannInviteOnly(void) const;
+        void                    setChannInviteOnly(bool tf);
+        std::set<std::string>&  getAllInvitees();
 };
 #endif // !CHANNEL_HPP

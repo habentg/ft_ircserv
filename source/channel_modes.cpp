@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 09:45:02 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/03/04 18:39:16 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/06 11:57:45 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,7 +82,7 @@ bool Command::mode_channel(Client *client, Server* serverInstance) {
     // for now lets just consider our modes comes in (+m) or (-m) formats:
         // but in real irc channel, /mode <chan> +i-i+k... 
     // std::cout << "\n---------------------------------------\n";
-    // std::vector<std::string> modes = split(this->params[1], '-', '+');
+    // std::vector<std::string> modes = split(this->params[1], '-');
     // std::vector<std::string>::iterator it = modes.begin();
     // for (; it != modes.end(); ++it) {
     //     if (it != modes.begin())
@@ -153,6 +153,17 @@ bool    Command::mode_o(Channel *chan, Client *client, Server* serverInstance) {
     return false;
 }
 bool    Command::mode_i(Channel *chan, Client *client, Server* serverInstance) {
+    if (this->params[1] == "+i") {
+        // check if channel is alrady an "invite-only" channel
+        if (chan->isChannInviteOnly())
+            return true;
+        chan->setChannInviteOnly(true);
+    }
+    if (this->params[1] == "-i") {
+        if (chan->isChannInviteOnly() == false)
+            return false;
+        chan->setChannInviteOnly(false);
+    }
     return false;
 }
 /* Format:

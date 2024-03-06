@@ -48,11 +48,11 @@ std::string trim(std::string& str) {
     return  str.substr(i, len - i);
 }
 
-std::vector<std::string> split(std::string& str, char delimiter, char delimiter_two) {
+std::vector<std::string> split(std::string& str, char delimiter) {
     std::vector<std::string> arr;
     std::string elem;
     for (size_t i = 0; i < str.length(); ++i) {
-        if (str[i] == delimiter || str[i] == delimiter_two || str[i] == 10 || str[i] == 13) {
+        if (str[i] == delimiter || str[i] == 10 || str[i] == 13) {
             if (elem.empty())
                 continue ;
             arr.push_back(trim(elem));

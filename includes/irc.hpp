@@ -111,7 +111,7 @@
 
 
 unsigned short int          validate_input(int ac, char **av);
-std::vector<std::string>    split(std::string& str, char delimiter, char delimiter_two);
+std::vector<std::string>    split(std::string& str, char delimiter);
 void                        printVector(std::vector<std::string> vec);
 std::string                 lowerCaseString(std::string str);
 

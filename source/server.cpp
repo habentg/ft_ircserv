@@ -286,7 +286,9 @@ void    Server::channelRelatedOperations(Client* client, Command *command) {
     else if (command->cmd == "PART")
         command->partLeavChan(client, this);
     else if (command->cmd == "MODE")
-        command->mode(client, this);
+        command->mode(client, this); 
+    else if (command->cmd == "INVITE")
+        command->invite(client, this); 
 }
 
 /* Connected Client can DO these stuff basicly:
@@ -302,6 +304,7 @@ void Server::doStuff(Client* client, Command *command) {
         this->sendMsgToClient(client->getFd(), PONG(this->getServerHostName()));
         return ;
     }
+    std::cout << "--> Full-CMD: {" << command->raw_cmd << "} <--\n";
     if (command->cmd == "PRIVMSG") {
         command->privmsg(client, this);
         return ;
@@ -310,7 +313,6 @@ void Server::doStuff(Client* client, Command *command) {
         command->quit(client, this);
         return ;
     }
-    std::cout << "--> Full-CMD: {" << command->raw_cmd << "} <--\n";
     /* Channel and channel related features --- big job */
     if (command->cmd == "JOIN" || command->cmd == "KICK" || command->cmd == "MODE" || command->cmd == "PART" || command->cmd == "INVITE" || command->cmd == "TOPIC") {
         this->channelRelatedOperations(client, command);
@@ -371,7 +373,11 @@ void Server::recieveMsg(int clientFd) {
             If you encounter an empty message, silently ignore it.
         */
         std::string msg = std::string(buffer);
-        std::vector<std::string> arr_of_cmds = split(msg, '\0', '\0');
+        std::vector<std::string> arr_of_cmds = split(msg, '\0');
+        if (arr_of_cmds.size() == 0) {
+            std::cout << "EMPTY handed you come I not parse\n";
+            return ;
+        }
         std::vector<std::string>::iterator it = arr_of_cmds.begin();
         for (; it != arr_of_cmds.end(); ++it) {
             Command *command = new Command((*it));

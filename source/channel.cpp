@@ -17,6 +17,7 @@ Channel::Channel(std::string chanName, Client *creator) {
     this->_chanKey = "";
     this->_creator = creator->getNickName();
     this->_chanLimit = 0;
+    this->_isChanInv = false;
 }
 
 Channel::~Channel(void) {
@@ -67,19 +68,22 @@ std::string    Channel::isClientChanOp(std::string clientNick) const {
 }
 std::string    Channel::isClientaMember(std::string clientNick) const {
     std::string potentialOp = "@" + clientNick;
-    std::set<std::string>::iterator it = this->_members.lower_bound(potentialOp);
-    if ((*it) == potentialOp)
+    std::set<std::string>::iterator it = this->_chanOps.lower_bound(potentialOp);
+    if (it != this->_chanOps.end() && (*it) == potentialOp)
         return potentialOp;
     std::set<std::string>::iterator m_it = this->_members.lower_bound(clientNick);
-    if ((*m_it) == clientNick)
+    if (it != this->_members.end() && (*m_it) == clientNick)
         return clientNick;
     return "";
 }
 
 void     Channel::deleteAMember(std::string victim) {
     std::string vic = this->isClientaMember(victim);
+    std::cout << "VIC: " << vic << std::endl;
     if (vic == "")
         return ;
+    if (vic[0] == '@')
+        this->_chanOps.erase(vic);
     this->_members.erase(vic);
     this->_member_fd_map.erase(vic);
 }
@@ -130,4 +134,16 @@ unsigned int       Channel::getUsersLimit(void) {
 
 std::set<std::string>&  Channel::getAllChanOps(void) {
     return (this->_chanOps);
+}
+
+bool    Channel::isChannInviteOnly(void) const {
+    return this->_isChanInv;
+}
+
+void    Channel::setChannInviteOnly(bool tf) {
+    this->_isChanInv = tf;
+}
+
+std::set<std::string>&  Channel::getAllInvitees(void) {
+    return (this->_invitedUser);
 }
