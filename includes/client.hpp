@@ -32,6 +32,7 @@ class Client {
         unsigned int _wrongPassCount;
         std::set<std::string> _channelsJoined;
         struct sockaddr* _clientInfo; // incase I need more info about the client
+        std::string     _recievedBuff;
         Client(void);
     public:
         Client(int clientFd, struct sockaddr *clientInfo);
@@ -40,7 +41,7 @@ class Client {
         int             getFd(void) const;
         
         bool            IsClientConnected(void) const;
-        void            setIsregistered(bool value);
+        void            setIsConnected(bool value);
         
         bool            getIsAuthenticated(void) const;
         void            setIsAuthenticated(bool value);
@@ -57,7 +58,7 @@ class Client {
         std::string     getIpAddr(void) const;
         
         std::set<std::string>& getChannelsJoined(void);
-
+        std::string&           getRecivedBuffer();
         unsigned int    getWrongPassCount(void) const;
         void            setWrongPassCount(unsigned int value);
         void            addChannelNameToCollection(std::string chanName);

@@ -82,6 +82,15 @@
 #define ERR_YouIsNotInCHANNEL(hostname, nickname, chanName)         std::string(":"+hostname+" 442 "+nickname+chanName+" :you are not in channel, so you cant send\r\n")
 #define ERR_USERNOTINCHANNEL(hostname, nickname, chanName)         std::string(":"+hostname+" 441 "+nickname+chanName+" :user is is not in channel\r\n")
 #define ERR_CHANKEYALREADYSET(hostname, nickname, chanName)             std::string(":"+hostname+" 467 "+nickname+" "+chanName+" :Channel key is already set (+k)\r\n")
+/*  << JOIN #42chan
+    >> :stockholm.se.quakenet.org 473 bfk #42chan :Cannot join channel, you must be invited (+i)
+*/
+#define ERR_INVITEONLYCHAN(hostname, nick, chanName)                std::string(":"+hostname+" 473 "+nick+" "+chanName+" :channel is invite only, you cant join\r\n")
+/* 
+    << INVITE zfk #42chan
+    >> :underworld2.no.quakenet.org 443 afk zfk #42chan :is already on channel
+*/
+#define ERR_USERONCHANNEL(hostname, nick, inviteeNick, chanName)                std::string(":"+hostname+" 443 "+nick+" "+inviteeNick+" "+chanName+" :user is already in channel\r\n")
 
 /* REPLAY */
 #define userHostMask(senderNick, senderUsername, clientIp)                      std::string(":"+senderNick+"!"+senderUsername+"@"+clientIp)
@@ -96,6 +105,8 @@
 #define RPL_CHANNELMODEIS(hostname, nick, chanName, msg)                                std::string(":"+hostname+" 324 "+nick+" "+chanName+" "+msg+"\r\n")
 /* >> :gaim!~dd@5.195.225.158 MODE #habexirc -o tesfa */
 #define RPL_OPERATORGIVEREVOKE(op_nick, op_username, op_ip, chanName, optype, newopnick)  std::string(userHostMask(op_nick, op_username, op_ip)+" MODE "+chanName+" "+optype+" "+newopnick+"\r\n")
+#define RPL_YouIsInvited(op_nick, op_username, op_ip, chanName, inviteeNick)  std::string(userHostMask(op_nick, op_username, op_ip)+" INVITE "+" "+inviteeNick+" "+chanName+" "+"\r\n")
+
 
 /* Error responses */
 # define INCORRECT_ARGS "Error: Incorrect Numner of arguments!!\n    Usage: ./ft_ircserv <port number <password>"

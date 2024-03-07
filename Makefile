@@ -15,7 +15,7 @@ NAME		= ircserv
 
 # Compiler, flags and RM command:
 CXX 		= c++
-CXXFLAGS	= -Wall -Werror -Wextra -std=c++98
+CXXFLAGS	= -Wall -Werror -Wextra -std=c++98 -g
 RM 			= rm -rf
 
 # Source files:

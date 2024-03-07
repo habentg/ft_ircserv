@@ -52,6 +52,9 @@ std::vector<struct pollfd>& Server::getFdArray(void) {
 }
 
 Client* Server::getClient(int clientFd) {
+    std::map<int, Client *>::iterator it = this->_clients.find(clientFd);
+    if (it == this->_clients.end())
+        return NULL;
     return this->_clients[clientFd];
 }
 
@@ -361,27 +364,27 @@ void Server::recieveMsg(int clientFd) {
     char buffer[1024];
     int buffer_size = sizeof(buffer);
 
+    Client *client = this->getClient(clientFd);
+    if (client == NULL)
+        return ;
     std::memset(buffer, 0, buffer_size);
     int bytes_received = recv(clientFd, buffer, buffer_size, 0);
     if (bytes_received < 1)
         return ;
-    buffer[bytes_received] = '\0'; // Null-terminate the received data coz recv() doesnt 
+    buffer[bytes_received] = '\0'; // Null-terminate the received data coz recv() doesnt
+    client->getRecivedBuffer() += std::string(buffer);
+    if (std::strchr(client->getRecivedBuffer().c_str(), '\n') == NULL) {
+        return ;
+    }
+    if (client->getRecivedBuffer().size() == 0)
+        return ;
     try
     {
-        /* command construction */
-        /* Only parse and process a message once you encounter the \r\n at the end of it.
-            If you encounter an empty message, silently ignore it.
-        */
-        std::string msg = std::string(buffer);
-        std::vector<std::string> arr_of_cmds = split(msg, '\0');
-        if (arr_of_cmds.size() == 0) {
-            std::cout << "EMPTY handed you come I not parse\n";
-            return ;
-        }
+        std::vector<std::string> arr_of_cmds = split(client->getRecivedBuffer(), '\0');
+        client->getRecivedBuffer() = ""; // empty the buffer;
         std::vector<std::string>::iterator it = arr_of_cmds.begin();
         for (; it != arr_of_cmds.end(); ++it) {
             Command *command = new Command((*it));
-            Client *client = this->_clients[clientFd];
 
             // so far all the commands I know has to have at least one parameter!
                 // we can have empty "USER" cmd i think

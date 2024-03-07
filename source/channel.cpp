@@ -17,7 +17,6 @@ Channel::Channel(std::string chanName, Client *creator) {
     this->_chanKey = "";
     this->_creator = creator->getNickName();
     this->_chanLimit = 0;
-    this->_isChanInv = false;
 }
 
 Channel::~Channel(void) {
@@ -32,10 +31,6 @@ size_t Channel::getNumOfChanMembers(void) const {
 
 void Channel::addMember(std::string clientNick) {
     this->_members.insert(clientNick);
-}
-
-void Channel::deleteMember(std::string clientNick) {
-    this->_members.erase(clientNick);
 }
 
 bool Channel::doesClientAlreadyAMember(std::string clientNick) {
@@ -134,14 +129,6 @@ unsigned int       Channel::getUsersLimit(void) {
 
 std::set<std::string>&  Channel::getAllChanOps(void) {
     return (this->_chanOps);
-}
-
-bool    Channel::isChannInviteOnly(void) const {
-    return this->_isChanInv;
-}
-
-void    Channel::setChannInviteOnly(bool tf) {
-    this->_isChanInv = tf;
 }
 
 std::set<std::string>&  Channel::getAllInvitees(void) {

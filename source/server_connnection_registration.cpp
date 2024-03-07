@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/28 12:54:51 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/03/01 10:58:32 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/07 17:37:11 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,7 +77,7 @@ void Server::userAuthenticationAndWelcome(Client* client, Command *command) {
         return ;
         // // send welcome message
     if (client->getIsAuthenticated() && client->getUserName() != "" && client->getNickName() != "") {
-        client->setIsregistered(true);
+        client->setIsConnected(true);
         this->_nick_fd_map.insert(std::pair<std::string, int>(client->getNickName(), client->getFd()));
         this->sendMsgToClient(client->getFd(), RPL_WELCOME(this->getServerHostName(), client->getUserName(), client->getNickName()));
         this->sendMsgToClient(client->getFd(), RPL_YOURHOST(this->getServerHostName(), client->getNickName()));

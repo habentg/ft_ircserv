@@ -23,6 +23,7 @@ Client::Client(int clientFd, struct sockaddr *clientInfo){
         this->_port = ntohs(((struct sockaddr_in *)clientInfo)->sin_port);
         this->_clientInfo = clientInfo;
         this->_wrongPassCount = 0;
+        this->_recievedBuff = "";
 }
 
 Client::~Client(void) {
@@ -38,7 +39,7 @@ void Client::setIsAuthenticated(bool value) {
 bool Client::IsClientConnected(void) const {
     return this->_isConnected;
 }
-void Client::setIsregistered(bool value) {
+void Client::setIsConnected(bool value) {
     this->_isConnected = value;
 }
 
@@ -74,6 +75,11 @@ std::string Client::getIpAddr(void) const {
 unsigned int Client::getWrongPassCount(void) const {
     return this->_wrongPassCount;
 }
+
+std::string&  Client::getRecivedBuffer() {
+    return this->_recievedBuff;
+}
+
 
 void Client::setWrongPassCount(unsigned int value) {
     this->_wrongPassCount = value;

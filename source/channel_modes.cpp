@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 09:45:02 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/03/06 11:57:45 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/07 15:42:19 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -155,14 +155,20 @@ bool    Command::mode_o(Channel *chan, Client *client, Server* serverInstance) {
 bool    Command::mode_i(Channel *chan, Client *client, Server* serverInstance) {
     if (this->params[1] == "+i") {
         // check if channel is alrady an "invite-only" channel
-        if (chan->isChannInviteOnly())
+        if (chan->isModeOn('i'))
             return true;
-        chan->setChannInviteOnly(true);
+        // let them know that we exclusive!!!!!!
+        chan->getChannelModes().insert('i');
+        std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getChannelName(), std::string("+i"));
+        serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
     }
     if (this->params[1] == "-i") {
-        if (chan->isChannInviteOnly() == false)
+        if (chan->isModeOn('i') == false)
             return false;
-        chan->setChannInviteOnly(false);
+        // let them know that we aint exclusive anymore!!!!!
+        chan->getChannelModes().erase('i');
+        std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getChannelName(), std::string("-i"));
+        serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
     }
     return false;
 }
