@@ -48,13 +48,9 @@ void            Channel::setChanKey(std::string newKey) {
     this->_chanKey = newKey;
 }
 
-void            Channel::makeClientChanOp(std::string clientNick) {
-    this->_chanOps.insert("@" + clientNick);
-    std::cout << "--> [" +clientNick+"] is a chanOp now!\n";
-    // I will see how to display this modified nick name on the client side (related to mode maybe)
-}
-
 std::string    Channel::isClientChanOp(std::string clientNick) const {
+    if (clientNick[0] == '@')
+        return clientNick;
     std::string potentialOp = "@" + clientNick;
     std::set<std::string>::iterator it = this->_chanOps.lower_bound(potentialOp);
     if ((*it) != potentialOp)
@@ -97,8 +93,9 @@ void    Channel::insertToMemberFdMap(std::string nick, int fd) {
         Client *recvClient = serverInstance->getClientByNick((*m_it).first);
         if (chanNotice == true)
             serverInstance->sendMsgToClient(recvClient->getFd(), msg);
-        else if (senderClient->getFd() != recvClient->getFd())
-            serverInstance->sendMsgToClient(recvClient->getFd(), serverInstance->constructReplayMsg(senderNick, senderClient, this->getChannelName(), msg));
+        else if (senderClient->getFd() != recvClient->getFd()) // #define PRIVMSG_RPLY(senderNick, senderUsername, clientIp, revieverNick, msg)
+            serverInstance->sendMsgToClient(recvClient->getFd(), PRIVMSG_RPLY(senderNick, senderClient->getUserName(), senderClient->getIpAddr(), this->getChannelName(), msg));
+            // serverInstance->sendMsgToClient(recvClient->getFd(), serverInstance->constructReplayMsg(senderNick, senderClient, this->getChannelName(), msg));
         recvClient = NULL;
     }
  }

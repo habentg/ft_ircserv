@@ -19,6 +19,13 @@ void    signalHandler(int sig) {
     std::cout << "Server stopped by CTRL-C!\n";
     stopServer = true;
 }
+// Signal handler function for SIGPIPE
+void sigpipeHandler(int signal) {
+    if (signal == SIGPIPE) {
+        std::cerr << "SIGPIPE received. Client disconnected abruptly." << std::endl;
+        // Handle the disconnection or error as needed
+    }
+}
 
 /* Program Entry: */
 int main(int ac, char **av) {
@@ -30,8 +37,8 @@ int main(int ac, char **av) {
     Server& serverObj = Server::createServerInstance(portNumber, std::string(av[2]));
     try {
         serverObj.server_listen_setup(av[1]); // setting up the server to listen on the given port
-        signal(SIGINT, signalHandler); // setting up the signal handler for CTRL-C
-        while (!stopServer) { // our infinite loop (server main loop)
+        while (1) { // our infinite loop (server main loop)
+            signal(SIGINT, signalHandler); // setting up the signal handler for CTRL-C
             // monitoring our fds for any event.
             // this will basiclly block untill an "event" happens
             // it waits indefinitely for an event to occur (-1 timeout, the third arg)
@@ -41,6 +48,8 @@ int main(int ac, char **av) {
             // then we check at which fd does the event occur i.e the POLLIN event
                 // -> if its at the listner fd, it means we have a new connection
                 // -> if its on the other existing fds, it means we have a message incomming on that respective fd.
+            if (stopServer)
+                break ;
             if (serverObj.getFdArray()[0].revents == POLLIN) { // we accept the new connection and we add the newfd to our array ....
                 serverObj.acceptNewConnection();
             } else {
@@ -48,9 +57,14 @@ int main(int ac, char **av) {
                 std::vector<pollfd>::iterator it = serverObj.getFdArray().begin();
                 size_t numboffds = serverObj.getFdArray().size();
                 size_t i = 1;
-                while (i < numboffds){
+                std::cout << "we here ----- b4 whiile\n";
+                while (i < numboffds && !stopServer){
                     if (serverObj.getFdArray()[i].revents == POLLIN) {
                         serverObj.recieveMsg(serverObj.getFdArray()[i].fd); // we will "read" from that fd
+                    }
+                    else if (serverObj.getFdArray()[i].revents == 17) {
+                        Client *client = serverObj.getClient(serverObj.getFdArray()[i].fd);
+                        serverObj.removeClient(client, Conn_closed(serverObj.getServerHostName()));
                     }
                     numboffds = serverObj.getFdArray().size();
                     i++;
@@ -61,7 +75,7 @@ int main(int ac, char **av) {
         std::cerr << e.what() << std::endl;
     }
     if (stopServer) {
-        serverObj.sendMsgToAllClients("Server is shutting down!\n");
+        serverObj.sendMsgToAllClients(Conn_closed(serverObj.getServerHostName()));
         std::cout << "Server is shutting down!\n";
     }
     delete &serverObj;

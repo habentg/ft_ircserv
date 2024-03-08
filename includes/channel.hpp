@@ -81,7 +81,6 @@ class Channel {
         void                    addMember(std::string clientNick);
         bool                    doesClientAlreadyAMember(std::string clientNick);
         std::string             getChanKey(void) const;
-        void                    makeClientChanOp(std::string clientNick);
         std::string             isClientChanOp(std::string clientNick) const;
         std::string             isClientaMember(std::string clientNick) const;
         void                    deleteAMember(std::string victim);

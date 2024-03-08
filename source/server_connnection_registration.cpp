@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/28 12:54:51 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/03/07 17:37:11 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/07 20:11:32 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,6 +29,8 @@ void Server::acceptNewConnection(void) {
     if (newClientFd == -1) {
         throw std::runtime_error("Error: accepting connections!");
     }
+    if (fcntl(newClientFd, F_SETFL, O_NONBLOCK) < -1)
+        throw std::runtime_error("Error: fcntl from accept new connection");
     this->addToFdArray(newClientFd);
     
     struct sockaddr *clientInfo = (struct sockaddr *)&client_addr;

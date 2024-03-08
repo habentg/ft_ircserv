@@ -30,13 +30,18 @@ Server& Server::createServerInstance(unsigned short int portNumber, std::string 
     return *serverInstance;
 }
 
-Server::~Server(void) {
+Server::~Server() {
     std::map<int, Client *>::iterator it = this->_clients.begin();
-    for (; it != this->_clients.end(); it++)
-        delete it->second;
-    std::map<std::string, Channel *>::iterator ch_it = this->_channels.begin();
-    for (; ch_it != this->_channels.end(); ch_it++)
-        delete ch_it->second;
+    std::map<int, Client *>::iterator t_it; 
+    while (it != this->_clients.end()) {
+        t_it = it++;
+        Client *client = t_it->second;
+        if (client != NULL) {
+            this->removeClient(client, Conn_closed(getServerHostName()));
+            t_it->second = NULL; // Avoid dangling pointer
+        }
+    }
+    close(this->_serverSocketFd);
     std::cout << "Server Destructor Called!\n";
 }
 
@@ -157,10 +162,10 @@ int    Server::isClientAvailable(std::string nick) const {
 /*                 Recive a message from an existing connection                               */
 /* ------------------------------------------------------------------------------------------ */
 
-void Server::sendMsgToAllClients(std::string msg) {
+void Server::sendMsgToAllClients(std::string conCloseNotice) {
     std::map<int, Client *>::iterator it = this->_clients.begin();
     for (; it != this->_clients.end(); it++)
-        this->sendMsgToClient(it->first, msg);
+        this->sendMsgToClient(it->first, conCloseNotice);
 }
 
 void Server::sendMsgToClient(int clientFd, std::string msg) {
@@ -201,8 +206,6 @@ void Server::removeClient(Client *cl, std::string quitMsg) {
         this->removeClientFromChan(cl->getNickName(), chan);
         chan = NULL;
     }
-    this->_clients.erase(cl->getFd()); // remove the client from the map
-    this->_nick_fd_map.erase(cl->getNickName());
     // remove the fd STRUCT from the array as weelllllllll
     std::vector<struct pollfd>::iterator it = this->_fdsArray.begin();
     for (; it != this->_fdsArray.end(); it++) {
@@ -211,9 +214,9 @@ void Server::removeClient(Client *cl, std::string quitMsg) {
             break ;
         }
     }
-    close(cl->getFd());
+    this->_clients.erase(cl->getFd()); // remove the client from the map
+    this->_nick_fd_map.erase(cl->getNickName());
     delete cl; // delete the client object
-    std::cout << "one client quit: " << this->getNumberOfClients() << " left in server\n";
 }
 
 /* ================================================================================================================== */
@@ -232,7 +235,7 @@ void Server::removeClient(Client *cl, std::string quitMsg) {
 void    Server::createChannel(std::string chanName, Client *creator, Command *command) {
     Channel* newChan = new Channel(chanName, creator);
     this->_channels.insert(std::make_pair(chanName, newChan));
-    newChan->makeClientChanOp(creator->getNickName());
+    newChan->getAllChanOps().insert(("@" + creator->getNickName()));
     newChan->insertToMemberFdMap(("@" + creator->getNickName()), creator->getFd()); // he a chanOp!
     newChan->addMember(("@" + creator->getNickName())); // he a chanOp!
     creator->addChannelNameToCollection(newChan->getChannelName());
@@ -286,6 +289,8 @@ void    Server::channelRelatedOperations(Client* client, Command *command) {
         command->join(client, this);
     else if (command->cmd == "KICK")
         command->kick(client, this);
+    else if (command->cmd == "NAMES")
+        command->names(client, this);
     else if (command->cmd == "PART")
         command->partLeavChan(client, this);
     else if (command->cmd == "MODE")
@@ -317,7 +322,7 @@ void Server::doStuff(Client* client, Command *command) {
         return ;
     }
     /* Channel and channel related features --- big job */
-    if (command->cmd == "JOIN" || command->cmd == "KICK" || command->cmd == "MODE" || command->cmd == "PART" || command->cmd == "INVITE" || command->cmd == "TOPIC") {
+    if (command->cmd == "JOIN" || command->cmd == "KICK" || command->cmd == "NAMES" || command->cmd == "MODE" || command->cmd == "PART" || command->cmd == "INVITE" || command->cmd == "TOPIC") {
         this->channelRelatedOperations(client, command);
         return ;
     }
@@ -369,8 +374,10 @@ void Server::recieveMsg(int clientFd) {
         return ;
     std::memset(buffer, 0, buffer_size);
     int bytes_received = recv(clientFd, buffer, buffer_size, 0);
-    if (bytes_received < 1)
+    if (bytes_received < 1) {
+        std::cout << "this is the bytes recived: " << bytes_received << std::endl;
         return ;
+    }
     buffer[bytes_received] = '\0'; // Null-terminate the received data coz recv() doesnt
     client->getRecivedBuffer() += std::string(buffer);
     if (std::strchr(client->getRecivedBuffer().c_str(), '\n') == NULL) {

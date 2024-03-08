@@ -41,6 +41,9 @@
 #define CAP_LS_RESP(hostname)          std::string(":"+hostname+" CAP * LS :multi-prefix\r\n")
 #define CAP_ACK_RESP(hostname)         std::string(":"+hostname+" CAP * ACK :multi-prefix\r\n")
 
+/* Connection Closing */
+#define Conn_closed(hostname)          std::string(":"+hostname+" Connection Closed By the Server\r\n")
+
 /*  */
 #define RPL_WELCOME(hostname, username, nickname)    std::string(":"+hostname+" 001 "+nickname+" :Welcome to the Internet Relay Network, "+nickname+"!"+username+"@"+hostname+"\r\n")
 #define RPL_YOURHOST(hostname, nickname)             std::string(":"+hostname+" 002 "+nickname+" :Your host is "+hostname+", running version <1.0>\r\n")
@@ -77,10 +80,10 @@
 /* >> :hostsailor.ro.quakenet.org 475 gaim #new42chan :Cannot join channel, you need the correct key (+k) */
 #define ERR_BADCHANNELKEY(hostname, nickname, chanName)             std::string(":"+hostname+" 475 "+nickname+" "+chanName+" :You need a channel key to join (+k)\r\n")
 #define ERR_BADCHANMASK(hostname, nickname)                         std::string(":"+hostname+" 476 "+nickname+" :invalid channel name\r\n")
-#define ERR_CHANOPRIVSNEEDED(hostname, nickname, chanName)                    std::string(":"+hostname+" 482 "+nickname+chanName+" :you are not channel OP\r\n")
-#define ERR_NOSUCHCHANNEL(hostname, nickname, chanName)                       std::string(":"+hostname+" 403 "+nickname+chanName+" :no such channel\r\n")
-#define ERR_YouIsNotInCHANNEL(hostname, nickname, chanName)         std::string(":"+hostname+" 442 "+nickname+chanName+" :you are not in channel, so you cant send\r\n")
-#define ERR_USERNOTINCHANNEL(hostname, nickname, chanName)         std::string(":"+hostname+" 441 "+nickname+chanName+" :user is is not in channel\r\n")
+#define ERR_CHANOPRIVSNEEDED(hostname, nickname, chanName)                    std::string(":"+hostname+" 482 "+nickname+" "+chanName+" :you are not channel OP\r\n")
+#define ERR_NOSUCHCHANNEL(hostname, nickname, chanName)                       std::string(":"+hostname+" 403 "+nickname+" "+chanName+" :no such channel\r\n")
+#define ERR_YouIsNotInCHANNEL(hostname, nickname, chanName)         std::string(":"+hostname+" 442 "+nickname+" "+chanName+" :you are not in channel, so you cant send\r\n")
+#define ERR_USERNOTINCHANNEL(hostname, nickname, chanName)         std::string(":"+hostname+" 441 "+nickname+" "+chanName+" :user is not in channel\r\n")
 #define ERR_CHANKEYALREADYSET(hostname, nickname, chanName)             std::string(":"+hostname+" 467 "+nickname+" "+chanName+" :Channel key is already set (+k)\r\n")
 /*  << JOIN #42chan
     >> :stockholm.se.quakenet.org 473 bfk #42chan :Cannot join channel, you must be invited (+i)

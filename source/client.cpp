@@ -27,6 +27,8 @@ Client::Client(int clientFd, struct sockaddr *clientInfo){
 }
 
 Client::~Client(void) {
+    std::cout << "Client [" << this->_clientFd << "] destructed!\n";
+    close(this->_clientFd);
 }
 
 

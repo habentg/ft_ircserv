@@ -161,7 +161,7 @@ void Command::privmsg(Client *senderClient, Server *serverInstance) {
     }
     int recieverFd = serverInstance->isClientAvailable(this->params[0]);
     if (recieverFd == 0) {
-        serverInstance->sendMsgToClient(recieverFd, ERR_NOSUCHNICK(serverInstance->getServerHostName(), senderClient->getNickName(), this->params[0]));
+        serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOSUCHNICK(serverInstance->getServerHostName(), senderClient->getNickName(), this->params[0]));
         return ;
     }
     serverInstance->sendMsgToClient(recieverFd, serverInstance->constructReplayMsg(senderClient->getNickName(), senderClient, this->params[0], msgPriv));
@@ -323,19 +323,29 @@ void Command::names(Client *client, Server *serverInstance) {
     std::set<std::string> opNicks = channel->getAllChanOps();
     std::string namesReply = RPL_NAMES(serverInstance->getServerHostName(), client->getNickName(), channelName);
     std::set<std::string>::iterator it = opNicks.begin();
+    std::cout << "-----------------------------------\n";
+    std::cout << "NAMES: [" << namesReply << "]\n";
+    std::cout << "-----------------------------------\n";
     // Construct the NAMES reply message
     for (; it != opNicks.end(); ++it) {
         namesReply += (*it) + " ";
     }
     // then the normal members
+    std::cout << "-----------------------------------\n";
+    std::cout << "NAMES: [" << namesReply << "]\n";
+    std::cout << "-----------------------------------\n";
     std::set<std::string> nicknames = channel->getAllMembersNick(); // I USED reference (des kbleka ile tomas)
     std::set<std::string>::iterator it_n = nicknames.begin();
     for (; it_n != nicknames.end(); ++it_n) {
-        if (channel->isClientChanOp((*it_n)) == "")
+        if (channel->isClientChanOp((*it_n)) == "") {
+            std::cout << "I aint a Op\n";
             namesReply += (*it_n) + " ";
+        }
     }
     namesReply += "\r\n";
-
+    std::cout << "-----------------------------------\n";
+    std::cout << "NAMES: [" << namesReply << "]\n";
+    std::cout << "-----------------------------------\n";
     // Send the NAMES reply message to the client
     serverInstance->sendMsgToClient(client->getFd(), namesReply);
 
