@@ -39,7 +39,7 @@ class Server {
         // Server& operator=(const Server& cpy);
     public:
         ~Server(void);
-        static Server& createServerInstance(unsigned short int portNumber, std::string password);
+        static Server *createServerInstance(unsigned short int portNumber, std::string password);
         /* getters */
         unsigned short int          getServerPortNumber(void) const;
         std::vector<struct pollfd>& getFdArray(void);
@@ -71,13 +71,7 @@ class Server {
         Channel   *getChanByName(std::string chanName);
         void      deleteAChannel(Channel *chan);
         void      removeClientFromChan(std::string victimNick, Channel *chan);
-        size_t    numberOfChannels(void) {
-            return this->_channels.size();
-        }
         void       sendMessageToChan(Channel *chan, std::string sender, std::string msg, bool chanNotice);
-        // void deleteChannel(std::string chanName);
-        // void removeClientFromChan(Client *cl, Channel *chan); // inside this, if no user left delete the channel
-        // gonna add more from here
         
 };
 

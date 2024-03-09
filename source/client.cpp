@@ -89,7 +89,6 @@ void Client::setWrongPassCount(unsigned int value) {
 
 void  Client::addChannelNameToCollection(std::string chanName) {
     this->_channelsJoined.insert(chanName);
-    std::cout << this->getNickName() << " is joined in " << this->_channelsJoined.size() << " channels\n";
 }
 
 std::set<std::string>& Client::getChannelsJoined(void) {

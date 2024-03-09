@@ -145,7 +145,7 @@ void Command::privmsg(Client *senderClient, Server *serverInstance) {
     if (this->params[0][0] == '#') {
         Channel *chan = serverInstance->getChanByName(this->params[0]);
         if (chan == NULL) {
-            serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getServerHostName(), senderClient->getNickName(), chan->getChannelName()));
+            serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getServerHostName(), senderClient->getNickName(), chan->getName()));
             return ;
         }
         std::string sender = chan->isClientaMember(senderClient->getNickName());
@@ -153,7 +153,7 @@ void Command::privmsg(Client *senderClient, Server *serverInstance) {
             /* or we can send "404": cant send to channel, the below format
                 >> :stockholm.se.quakenet.org 404 tesfa_ #habex42ad :Cannot send to channel
             */
-            serverInstance->sendMsgToClient(senderClient->getFd(), ERR_YouIsNotInCHANNEL(serverInstance->getServerHostName(), senderClient->getNickName(), chan->getChannelName()));
+            serverInstance->sendMsgToClient(senderClient->getFd(), ERR_YouIsNotInCHANNEL(serverInstance->getServerHostName(), senderClient->getNickName(), chan->getName()));
             return ;
         }
         serverInstance->sendMessageToChan(chan, sender, msgPriv, false);
@@ -194,12 +194,12 @@ void    Command::join(Client *client, Server *serverInstance) {
         // check if the user has an invitation
         std::set<std::string>::iterator it = chann->getAllInvitees().lower_bound(client->getNickName());
         if (it == chann->getAllInvitees().end() || (*it) != client->getNickName()) {
-            serverInstance->sendMsgToClient(client->getFd(), ERR_INVITEONLYCHAN(serverInstance->getServerHostName(), client->getNickName(), chann->getChannelName()));
+            serverInstance->sendMsgToClient(client->getFd(), ERR_INVITEONLYCHAN(serverInstance->getServerHostName(), client->getNickName(), chann->getName()));
             std::cout << "dude !!!!! you is not invited\n";
             return ;
         }
         if (chann->isModeOn('l') && chann->getNumOfChanMembers() == chann->getUsersLimit()) {
-            serverInstance->sendMsgToClient(client->getFd(), ERR_CHANNELISFULL(serverInstance->getServerHostName(), client->getNickName(), chann->getChannelName()));
+            serverInstance->sendMsgToClient(client->getFd(), ERR_CHANNELISFULL(serverInstance->getServerHostName(), client->getNickName(), chann->getName()));
             std::cout << "you was invited but ... channel is full\n";
             return ;
         }
@@ -210,25 +210,28 @@ void    Command::join(Client *client, Server *serverInstance) {
     else if ((chann->isModeOn('k') || chann->isModeOn('l')))
     {
         if (this->params.size() == 1 || (this->params[1] != chann->getChanKey())){// he came without key or there is key mismatch
-            serverInstance->sendMsgToClient(client->getFd(), ERR_BADCHANNELKEY(serverInstance->getServerHostName(), client->getNickName(), chann->getChannelName()));
+            serverInstance->sendMsgToClient(client->getFd(), ERR_BADCHANNELKEY(serverInstance->getServerHostName(), client->getNickName(), chann->getName()));
             return ;
         }
         if (chann->isModeOn('l') && chann->getNumOfChanMembers() == chann->getUsersLimit()) {
-            serverInstance->sendMsgToClient(client->getFd(), ERR_CHANNELISFULL(serverInstance->getServerHostName(), client->getNickName(), chann->getChannelName()));
+            serverInstance->sendMsgToClient(client->getFd(), ERR_CHANNELISFULL(serverInstance->getServerHostName(), client->getNickName(), chann->getName()));
             return ;
         }
         // at this point he got the correct key and channel user limmit hasnt been reached yet
     }
     chann->addMember(client->getNickName());
     chann->insertToMemberFdMap(client->getNickName(), client->getFd());
-    client->addChannelNameToCollection(chann->getChannelName());
-    std::string letThemKnow = RPL_JOIN(client->getNickName(), client->getUserName(), client->getIpAddr(), chann->getChannelName());
+    client->addChannelNameToCollection(chann->getName());
+    std::string letThemKnow = RPL_JOIN(client->getNickName(), client->getUserName(), client->getIpAddr(), chann->getName());
     serverInstance->sendMessageToChan(chann, client->getNickName(), letThemKnow, true);
     this->names(client, serverInstance);
+    /* 18:40 -!- Channel #42chan created Fri Mar  8 18:40:38 2024 */ // DO THIS
+    /* >> :hostsailor.ro.quakenet.org 329 tom_ #sdff 1709910616 */
+    // serverInstance->sendMsgToClient(client->getFd(), RPL_TIME(serverInstance->getServerHostName(), client->getNickName(), chann->getName(), std::string(getCurrentTime())));
     if (chann->isModeOn('i'))
         chann->getAllInvitees().erase(client->getNickName()); // invitation used and expired!!!
 
-    std::cout << "Added {"<<client->getNickName()<<"} to <"<<chann->getChannelName()<<"> has : " <<chann->getNumOfChanMembers()<<" members now\n";
+    std::cout << "Added {"<<client->getNickName()<<"} to <"<<chann->getName()<<"> has : " <<chann->getNumOfChanMembers()<<" members now\n";
 }
 
 /*
@@ -252,20 +255,20 @@ void    Command::kick(Client *senderClient, Server *serverInstance) {
     // check if "kicker" is a chanOp, if not send error and return
     std::string chanOp = chan->isClientaMember(senderClient->getNickName());
     if (chanOp == "") {
-        serverInstance->sendMsgToClient(senderClient->getFd(), ERR_YouIsNotInCHANNEL(serverInstance->getServerHostName(), senderClient->getNickName(), chan->getChannelName()));
+        serverInstance->sendMsgToClient(senderClient->getFd(), ERR_YouIsNotInCHANNEL(serverInstance->getServerHostName(), senderClient->getNickName(), chan->getName()));
         std::cout << "sender user: [" << senderClient->getNickName() << "] is not an IN CHANNEL!\n";
         return ;
     }
     if (chanOp[0] != '@') {
         // notice in your side only that sais you are not OP!
-        serverInstance->sendMsgToClient(senderClient->getFd(), ERR_CHANOPRIVSNEEDED(serverInstance->getServerHostName(), senderClient->getNickName(), chan->getChannelName()));
+        serverInstance->sendMsgToClient(senderClient->getFd(), ERR_CHANOPRIVSNEEDED(serverInstance->getServerHostName(), senderClient->getNickName(), chan->getName()));
         std::cout << "sender user: [" << senderClient->getNickName() << "] is not an OP!\n";
         return ;
     }
     // check if the user exists in said channel, if not send error and return
     std::string victim = chan->isClientaMember(this->params[1]);
     if (victim == "") {
-        serverInstance->sendMsgToClient(senderClient->getFd(), ERR_USERNOTINCHANNEL(serverInstance->getServerHostName(), senderClient->getNickName(), chan->getChannelName()));
+        serverInstance->sendMsgToClient(senderClient->getFd(), ERR_USERNOTINCHANNEL(serverInstance->getServerHostName(), senderClient->getNickName(), chan->getName()));
         std::cout << "victim user: [" << senderClient->getNickName() << "] is not in channel!\n";
         return ;
     }
@@ -275,7 +278,7 @@ void    Command::kick(Client *senderClient, Server *serverInstance) {
     std::string kickMsg = this->raw_cmd.substr(this->raw_cmd.find(':') + 1);
     if (kickMsg == "")
         kickMsg = victim;
-    std::string kickNotice = RPL_KICK(senderClient->getNickName(), senderClient->getUserName(), senderClient->getIpAddr(), chan->getChannelName(), victim, kickMsg);
+    std::string kickNotice = RPL_KICK(senderClient->getNickName(), senderClient->getUserName(), senderClient->getIpAddr(), chan->getName(), victim, kickMsg);
     // inform all user of the channel that someone got kicked out !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     /* 
         << KICK #lef tesfa____ :
@@ -304,7 +307,7 @@ void    Command::partLeavChan(Client *senderClient, Server *serverInstance) {
     std::string reason = std::string("Default Leaving Reason");
     if (this->raw_cmd.find(':') != std::string::npos)
         reason = this->raw_cmd.substr(this->raw_cmd.find(':') + 1);
-    std::string partMsg = RPL_PART(senderClient->getNickName(), senderClient->getUserName(), senderClient->getIpAddr(), chan->getChannelName(), reason);
+    std::string partMsg = RPL_PART(senderClient->getNickName(), senderClient->getUserName(), senderClient->getIpAddr(), chan->getName(), reason);
     serverInstance->sendMessageToChan(chan, senderClient->getNickName(), partMsg, true);
     serverInstance->removeClientFromChan(senderClient->getNickName(), chan);
     return ;
@@ -323,29 +326,19 @@ void Command::names(Client *client, Server *serverInstance) {
     std::set<std::string> opNicks = channel->getAllChanOps();
     std::string namesReply = RPL_NAMES(serverInstance->getServerHostName(), client->getNickName(), channelName);
     std::set<std::string>::iterator it = opNicks.begin();
-    std::cout << "-----------------------------------\n";
-    std::cout << "NAMES: [" << namesReply << "]\n";
-    std::cout << "-----------------------------------\n";
     // Construct the NAMES reply message
     for (; it != opNicks.end(); ++it) {
         namesReply += (*it) + " ";
     }
     // then the normal members
-    std::cout << "-----------------------------------\n";
-    std::cout << "NAMES: [" << namesReply << "]\n";
-    std::cout << "-----------------------------------\n";
     std::set<std::string> nicknames = channel->getAllMembersNick(); // I USED reference (des kbleka ile tomas)
     std::set<std::string>::iterator it_n = nicknames.begin();
     for (; it_n != nicknames.end(); ++it_n) {
         if (channel->isClientChanOp((*it_n)) == "") {
-            std::cout << "I aint a Op\n";
             namesReply += (*it_n) + " ";
         }
     }
     namesReply += "\r\n";
-    std::cout << "-----------------------------------\n";
-    std::cout << "NAMES: [" << namesReply << "]\n";
-    std::cout << "-----------------------------------\n";
     // Send the NAMES reply message to the client
     serverInstance->sendMsgToClient(client->getFd(), namesReply);
 
@@ -367,7 +360,7 @@ void    Command::invite(Client *client, Server *serverInstance) {
     // checking channel availability and the channel is an invite-only
     Channel *chan = serverInstance->getChanByName(this->params[1]);
     if (chan == NULL) {
-        serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getServerHostName(), client->getNickName(), chan->getChannelName()));
+        serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getServerHostName(), client->getNickName(), chan->getName()));
         std::cout << "no such chanel for INVITE\n";
         return ;
     }
@@ -379,12 +372,12 @@ void    Command::invite(Client *client, Server *serverInstance) {
     // checking is invitor is in channel and is actuall a chanOp
     std::string chanOp = chan->isClientaMember(client->getNickName());
     if (chanOp == "") {
-        serverInstance->sendMsgToClient(client->getFd(), ERR_YouIsNotInCHANNEL(serverInstance->getServerHostName(), client->getNickName(), chan->getChannelName()));
+        serverInstance->sendMsgToClient(client->getFd(), ERR_YouIsNotInCHANNEL(serverInstance->getServerHostName(), client->getNickName(), chan->getName()));
         std::cout << "invitor is not in channel for INVITE\n";
         return ;
     }
     if (chanOp[0] != '@') {
-        serverInstance->sendMsgToClient(client->getFd(), ERR_CHANOPRIVSNEEDED(serverInstance->getServerHostName(), client->getNickName(), chan->getChannelName()));
+        serverInstance->sendMsgToClient(client->getFd(), ERR_CHANOPRIVSNEEDED(serverInstance->getServerHostName(), client->getNickName(), chan->getName()));
         std::cout << "invitor is not a ChanOp for INVITE\n";
         return ;
     }
@@ -396,12 +389,12 @@ void    Command::invite(Client *client, Server *serverInstance) {
         return ;
     }
     if (chan->isClientaMember(invitee->getNickName()) != "") {
-        serverInstance->sendMsgToClient(client->getFd(), ERR_USERONCHANNEL(serverInstance->getServerHostName(), client->getNickName(), invitee->getNickName(), chan->getChannelName()));
+        serverInstance->sendMsgToClient(client->getFd(), ERR_USERONCHANNEL(serverInstance->getServerHostName(), client->getNickName(), invitee->getNickName(), chan->getName()));
         std::cout << "dude is already in channel, he dont need no invite! for INVITE\n";
         return ;
     }
     // adding invitee's nick name in our record of invitee's (needed to be deleted after one time use)
     chan->getAllInvitees().insert(invitee->getNickName());
-    serverInstance->sendMsgToClient(invitee->getFd(), RPL_YouIsInvited(client->getNickName(), client->getNickName(), client->getIpAddr(), chan->getChannelName(), invitee->getNickName()));
+    serverInstance->sendMsgToClient(invitee->getFd(), RPL_YouIsInvited(client->getNickName(), client->getNickName(), client->getIpAddr(), chan->getName(), invitee->getNickName()));
     /* >> :afk!~hab@5.195.225.158 INVITE cfk #42chanasfaf */
 }

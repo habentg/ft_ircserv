@@ -18,6 +18,7 @@
 # include <exception>
 # include <string>
 # include <cstdlib>
+# include <ctime>
 # include <sys/types.h>
 # include <sys/socket.h>
 # include <netdb.h>
@@ -108,7 +109,8 @@
 #define RPL_CHANNELMODEIS(hostname, nick, chanName, msg)                                std::string(":"+hostname+" 324 "+nick+" "+chanName+" "+msg+"\r\n")
 /* >> :gaim!~dd@5.195.225.158 MODE #habexirc -o tesfa */
 #define RPL_OPERATORGIVEREVOKE(op_nick, op_username, op_ip, chanName, optype, newopnick)  std::string(userHostMask(op_nick, op_username, op_ip)+" MODE "+chanName+" "+optype+" "+newopnick+"\r\n")
-#define RPL_YouIsInvited(op_nick, op_username, op_ip, chanName, inviteeNick)  std::string(userHostMask(op_nick, op_username, op_ip)+" INVITE "+" "+inviteeNick+" "+chanName+" "+"\r\n")
+#define RPL_YouIsInvited(op_nick, op_username, op_ip, chanName, inviteeNick)                std::string(userHostMask(op_nick, op_username, op_ip)+" INVITE "+" "+inviteeNick+" "+chanName+" "+"\r\n")
+#define RPL_TIME(hostname, nick, chanName, time)                                            std::string(":"+hostname+" 329 "+nick+" "+chanName+" "+time+"\r\n")
 
 
 /* Error responses */
@@ -127,6 +129,6 @@
 unsigned short int          validate_input(int ac, char **av);
 std::vector<std::string>    split(std::string& str, char delimiter);
 void                        printVector(std::vector<std::string> vec);
-std::string                 lowerCaseString(std::string str);
-
+time_t                      getCurrentTime(void);
+std::string                 timeToString(time_t time);
 #endif // !IRC_HPP

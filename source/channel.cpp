@@ -22,7 +22,7 @@ Channel::Channel(std::string chanName, Client *creator) {
 Channel::~Channel(void) {
 }
 
-std::string Channel::getChannelName(void) const{
+std::string Channel::getName(void) const{
     return this->_chanName;
 }
 size_t Channel::getNumOfChanMembers(void) const {
@@ -94,8 +94,8 @@ void    Channel::insertToMemberFdMap(std::string nick, int fd) {
         if (chanNotice == true)
             serverInstance->sendMsgToClient(recvClient->getFd(), msg);
         else if (senderClient->getFd() != recvClient->getFd()) // #define PRIVMSG_RPLY(senderNick, senderUsername, clientIp, revieverNick, msg)
-            serverInstance->sendMsgToClient(recvClient->getFd(), PRIVMSG_RPLY(senderNick, senderClient->getUserName(), senderClient->getIpAddr(), this->getChannelName(), msg));
-            // serverInstance->sendMsgToClient(recvClient->getFd(), serverInstance->constructReplayMsg(senderNick, senderClient, this->getChannelName(), msg));
+            serverInstance->sendMsgToClient(recvClient->getFd(), PRIVMSG_RPLY(senderNick, senderClient->getUserName(), senderClient->getIpAddr(), this->getName(), msg));
+            // serverInstance->sendMsgToClient(recvClient->getFd(), serverInstance->constructReplayMsg(senderNick, senderClient, this->getName(), msg));
         recvClient = NULL;
     }
  }

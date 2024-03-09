@@ -24,10 +24,13 @@ Server::Server(unsigned short int  portNumber, std::string password) : _serverPo
     std::cout << "Server created!" << std::endl;
 }
 
-Server& Server::createServerInstance(unsigned short int portNumber, std::string password) {
-    if (!serverInstance)
+Server *Server::createServerInstance(unsigned short int portNumber, std::string password) {
+    if (!serverInstance) {
         serverInstance = new Server(portNumber, password);
-    return *serverInstance;
+        if (serverInstance == NULL)
+            std::cerr << "[ Failed to allocate memory for server!!]\n";
+    }
+    return serverInstance;
 }
 
 Server::~Server() {
@@ -238,8 +241,8 @@ void    Server::createChannel(std::string chanName, Client *creator, Command *co
     newChan->getAllChanOps().insert(("@" + creator->getNickName()));
     newChan->insertToMemberFdMap(("@" + creator->getNickName()), creator->getFd()); // he a chanOp!
     newChan->addMember(("@" + creator->getNickName())); // he a chanOp!
-    creator->addChannelNameToCollection(newChan->getChannelName());
-    std::cout << "CHANNEL : {" << newChan->getChannelName() << "} created!\n";
+    creator->addChannelNameToCollection(newChan->getName());
+    std::cout << "CHANNEL : {" << newChan->getName() << "} created!\n";
     /* 
         << JOIN #lef
         >> :tesfa___!~dd@5.195.225.158 JOIN #lef
@@ -248,6 +251,10 @@ void    Server::createChannel(std::string chanName, Client *creator, Command *co
     */
    this->sendMsgToClient(creator->getFd(), RPL_JOIN(creator->getNickName(), creator->getUserName(), creator->getIpAddr(), chanName));
    command->names(creator, this);
+   std::cout << getCurrentTime() << std::endl;
+//    std::string ss = static_cast<std::string>(getCurrentTime());
+//    serverInstance->sendMsgToClient(creator->getFd(), RPL_TIME(serverInstance->getServerHostName(), creator->getNickName(), newChan->getName(), std::string(getCurrentTime())));
+
 }
 
 Channel   *Server::getChanByName(std::string chanName) {
@@ -271,7 +278,7 @@ Channel   *Server::getChanByName(std::string chanName) {
  }
 
 void    Server::deleteAChannel(Channel *chan) {
-    this->_channels.erase(chan->getChannelName()); // remove it from the map
+    this->_channels.erase(chan->getName()); // remove it from the map
     delete chan; // destruct it
 }
 
@@ -312,7 +319,15 @@ void Server::doStuff(Client* client, Command *command) {
         this->sendMsgToClient(client->getFd(), PONG(this->getServerHostName()));
         return ;
     }
-    std::cout << "--> Full-CMD: {" << command->raw_cmd << "} <--\n";
+    // if (command->cmd == "time") {
+    //     if (command->params.size() != 0)
+    //         return ;
+    //     std::cout << "-->AAAAAAAAA Full-CMD: {" << command->raw_cmd << "} <--\n";
+    //     std::string timeString = timeToString(getCurrentTime());
+    //     std::ostringstream message;
+    //     message << ":" << serverName << " 329 <nickname> " << channel << " " << creationTime << " :" << timeString << "\r\n";
+    //     return ;
+    // }
     if (command->cmd == "PRIVMSG") {
         command->privmsg(client, this);
         return ;
@@ -395,7 +410,8 @@ void Server::recieveMsg(int clientFd) {
 
             // so far all the commands I know has to have at least one parameter!
                 // we can have empty "USER" cmd i think
-            if (command->params.empty() && command->cmd != "USER")
+            std::cout << "=====> {" << command->raw_cmd << "}" << std::endl;
+            if (command->params.empty() && command->cmd != "USER" && command->cmd != "time")
             {
                 this->sendMsgToClient(client->getFd(), ERR_NEEDMOREPARAMS(this->getServerHostName(), command->cmd));
                 return ;

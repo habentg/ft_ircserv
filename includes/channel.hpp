@@ -77,7 +77,7 @@ class Channel {
         ~Channel();
         // members
         size_t                  getNumOfChanMembers(void) const;
-        std::string             getChannelName(void) const;
+        std::string             getName(void) const;
         void                    addMember(std::string clientNick);
         bool                    doesClientAlreadyAMember(std::string clientNick);
         std::string             getChanKey(void) const;

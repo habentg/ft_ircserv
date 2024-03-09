@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 09:45:02 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/03/07 15:42:19 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/08 19:21:44 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,7 +43,7 @@ void Command::mode(Client *client, Server* serverInstance) {
                 >> :hostsailor.ro.quakenet.org 329 a__ #42chan 1709438651
                 --> event 329
             */
-           serverInstance->sendMsgToClient(client->getFd(), RPL_CHANNELMODEIS(serverInstance->getServerHostName(), client->getNickName(), chan->getChannelName(), modesOn));
+           serverInstance->sendMsgToClient(client->getFd(), RPL_CHANNELMODEIS(serverInstance->getServerHostName(), client->getNickName(), chan->getName(), modesOn));
            std::cout << "channel mode query!\n";
            return ;
         }
@@ -76,7 +76,7 @@ bool Command::mode_channel(Client *client, Server* serverInstance) {
     */
     std::string chanOp = chan->isClientChanOp(client->getNickName());
     if (chanOp == "") {
-        serverInstance->sendMsgToClient(client->getFd(), ERR_CHANOPRIVSNEEDED(serverInstance->getServerHostName(), client->getNickName(), chan->getChannelName()));
+        serverInstance->sendMsgToClient(client->getFd(), ERR_CHANOPRIVSNEEDED(serverInstance->getServerHostName(), client->getNickName(), chan->getName()));
         return false;
     }
     // for now lets just consider our modes comes in (+m) or (-m) formats:
@@ -134,7 +134,7 @@ bool    Command::mode_o(Channel *chan, Client *client, Server* serverInstance) {
     if (this->params[1] == "+o") {
         if (chan->isClientChanOp(groom) != "") // if he is a channelOp already we just ignore
             return true;
-        std::string modeRply = RPL_OPERATORGIVEREVOKE(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getChannelName(), "+o", this->params[2]);
+        std::string modeRply = RPL_OPERATORGIVEREVOKE(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), "+o", this->params[2]);
         serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
         std::cout << "num of chanOps: " << chan->getAllChanOps().size() << std::endl;
         chan->getAllChanOps().insert("@" + groom);
@@ -146,7 +146,7 @@ bool    Command::mode_o(Channel *chan, Client *client, Server* serverInstance) {
         {
             return true;
         }
-        std::string modeRply = RPL_OPERATORGIVEREVOKE(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getChannelName(), "-o", this->params[2]);
+        std::string modeRply = RPL_OPERATORGIVEREVOKE(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), "-o", this->params[2]);
         serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
         chan->getAllChanOps().erase("@" + groom);
     }
@@ -159,7 +159,7 @@ bool    Command::mode_i(Channel *chan, Client *client, Server* serverInstance) {
             return true;
         // let them know that we exclusive!!!!!!
         chan->getChannelModes().insert('i');
-        std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getChannelName(), std::string("+i"));
+        std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), std::string("+i"));
         serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
     }
     if (this->params[1] == "-i") {
@@ -167,7 +167,7 @@ bool    Command::mode_i(Channel *chan, Client *client, Server* serverInstance) {
             return false;
         // let them know that we aint exclusive anymore!!!!!
         chan->getChannelModes().erase('i');
-        std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getChannelName(), std::string("-i"));
+        std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), std::string("-i"));
         serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
     }
     return false;
@@ -197,7 +197,7 @@ bool    Command::mode_l(Channel *chan, Client *client, Server* serverInstance) {
         // we will see if any error handling is needed!
         chan->getChannelModes().erase('l');
         // let the group know that setting has changed!
-        std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getChannelName(), std::string("-l"));
+        std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), std::string("-l"));
         serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
         return (chan->setUsersLimit(0), true);
     }
@@ -209,7 +209,7 @@ bool    Command::mode_l(Channel *chan, Client *client, Server* serverInstance) {
         return (false);
     // check if the num is less than zero before setting it!
     chan->getChannelModes().insert('l'); // adding 'l' to indicate that we have the userlimit set for the channel
-    std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getChannelName(), std::string("+l " + this->params[2]));
+    std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), std::string("+l " + this->params[2]));
     serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
     /* we will twik the joining a channel feature to check for user limit before a client joins */
     return (chan->setUsersLimit(num), true);
@@ -222,7 +222,7 @@ bool    Command::mode_k(Channel *chan, Client *client, Server* serverInstance) {
             return (std::cout << "the key wasnt set!\n", false);
         }
         chan->getChannelModes().erase('k');
-        std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getChannelName(), std::string("-k " + chan->getChanKey()));
+        std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), std::string("-k " + chan->getChanKey()));
         serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
         return (chan->setChanKey(""), true);
     }
@@ -234,13 +234,13 @@ bool    Command::mode_k(Channel *chan, Client *client, Server* serverInstance) {
     if (this->params.size() != 3)
         return (serverInstance->sendMsgToClient(client->getFd(), ERR_NEEDMOREPARAMS(serverInstance->getServerHostName(), this->cmd)), false);
     if (chan->isModeOn('k') == true) // if we have key set alrady
-        return (serverInstance->sendMsgToClient(client->getFd(), ERR_CHANKEYALREADYSET(serverInstance->getServerHostName(), client->getUserName(), chan->getChannelName())), false);
+        return (serverInstance->sendMsgToClient(client->getFd(), ERR_CHANKEYALREADYSET(serverInstance->getServerHostName(), client->getUserName(), chan->getName())), false);
     chan->getChannelModes().insert('k');
     if (this->params[2].size() > 23) // overflow protection
         chan->setChanKey(this->params[2].substr(0, 23)); // this is how irssi does it
     else
         chan->setChanKey(this->params[2]);
-    std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getChannelName(), std::string("+k " + chan->getChanKey()));
+    std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), std::string("+k " + chan->getChanKey()));
     serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
     return (true);
 }

@@ -19,13 +19,6 @@ void    signalHandler(int sig) {
     std::cout << "Server stopped by CTRL-C!\n";
     stopServer = true;
 }
-// Signal handler function for SIGPIPE
-void sigpipeHandler(int signal) {
-    if (signal == SIGPIPE) {
-        std::cerr << "SIGPIPE received. Client disconnected abruptly." << std::endl;
-        // Handle the disconnection or error as needed
-    }
-}
 
 /* Program Entry: */
 int main(int ac, char **av) {
@@ -34,39 +27,40 @@ int main(int ac, char **av) {
     if (portNumber == 0)
         return 1;
     // instantiating a single server object and assigning port-number & password 
-    Server& serverObj = Server::createServerInstance(portNumber, std::string(av[2]));
+    Server *serverObj = Server::createServerInstance(portNumber, std::string(av[2]));
+    if (serverObj == NULL)
+        return 1;
     try {
-        serverObj.server_listen_setup(av[1]); // setting up the server to listen on the given port
+        serverObj->server_listen_setup(av[1]); // setting up the server to listen on the given port
         while (1) { // our infinite loop (server main loop)
             signal(SIGINT, signalHandler); // setting up the signal handler for CTRL-C
             // monitoring our fds for any event.
             // this will basiclly block untill an "event" happens
             // it waits indefinitely for an event to occur (-1 timeout, the third arg)
                 //-> for now let it run for indefinitely but later we will add "pinging" feature i.e we will check on our clients after certain ammount of time, and we will desconnect them if they are not active or something.
-            if (poll(&(serverObj.getFdArray()[0]), serverObj.getFdArray().size(), -1) == -1 && !stopServer)
+            if (poll(&(serverObj->getFdArray()[0]), serverObj->getFdArray().size(), -1) == -1 && !stopServer)
                 throw std::runtime_error("Error: polling problem");
             // then we check at which fd does the event occur i.e the POLLIN event
                 // -> if its at the listner fd, it means we have a new connection
                 // -> if its on the other existing fds, it means we have a message incomming on that respective fd.
             if (stopServer)
                 break ;
-            if (serverObj.getFdArray()[0].revents == POLLIN) { // we accept the new connection and we add the newfd to our array ....
-                serverObj.acceptNewConnection();
+            if (serverObj->getFdArray()[0].revents == POLLIN) { // we accept the new connection and we add the newfd to our array ....
+                serverObj->acceptNewConnection();
             } else {
                 // we have to indetify the fd the event occured so we can "recv".
-                std::vector<pollfd>::iterator it = serverObj.getFdArray().begin();
-                size_t numboffds = serverObj.getFdArray().size();
+                std::vector<pollfd>::iterator it = serverObj->getFdArray().begin();
+                size_t numboffds = serverObj->getFdArray().size();
                 size_t i = 1;
-                std::cout << "we here ----- b4 whiile\n";
                 while (i < numboffds && !stopServer){
-                    if (serverObj.getFdArray()[i].revents == POLLIN) {
-                        serverObj.recieveMsg(serverObj.getFdArray()[i].fd); // we will "read" from that fd
+                    if (serverObj->getFdArray()[i].revents == POLLIN) {
+                        serverObj->recieveMsg(serverObj->getFdArray()[i].fd); // we will "read" from that fd
                     }
-                    else if (serverObj.getFdArray()[i].revents == 17) {
-                        Client *client = serverObj.getClient(serverObj.getFdArray()[i].fd);
-                        serverObj.removeClient(client, Conn_closed(serverObj.getServerHostName()));
+                    else if (serverObj->getFdArray()[i].revents == 17) {
+                        Client *client = serverObj->getClient(serverObj->getFdArray()[i].fd);
+                        serverObj->removeClient(client, Conn_closed(serverObj->getServerHostName()));
                     }
-                    numboffds = serverObj.getFdArray().size();
+                    numboffds = serverObj->getFdArray().size();
                     i++;
                 }
             }
@@ -74,10 +68,8 @@ int main(int ac, char **av) {
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
     }
-    if (stopServer) {
-        serverObj.sendMsgToAllClients(Conn_closed(serverObj.getServerHostName()));
-        std::cout << "Server is shutting down!\n";
-    }
-    delete &serverObj;
+    std::cout << "Server is shutting down!\n";
+    serverObj->sendMsgToAllClients(Conn_closed(serverObj->getServerHostName()));
+    delete serverObj;
     return 0;
 }
