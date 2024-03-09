@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   channel_modes.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
+/*   By: hatesfam <hatesfam@student.abudhabi42.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 09:45:02 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/03/08 19:21:44 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/09 20:56:01 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,7 @@ void Command::mode(Client *client, Server* serverInstance) {
             std::set<char>::iterator it = chan->getChannelModes().begin();
             for (; it != chan->getChannelModes().end(); ++it)
                 modesOn += (*it);
-            std::cout << "Modes On: " << modesOn << std::endl;
+            // std::cout << "Modes On: " << modesOn << std::endl;
             /*
                 << MODE #42chan
                 >> :hostsailor.ro.quakenet.org 324 a__ #42chan +tnCN
@@ -44,7 +44,6 @@ void Command::mode(Client *client, Server* serverInstance) {
                 --> event 329
             */
            serverInstance->sendMsgToClient(client->getFd(), RPL_CHANNELMODEIS(serverInstance->getServerHostName(), client->getNickName(), chan->getName(), modesOn));
-           std::cout << "channel mode query!\n";
            return ;
         }
         this->mode_channel(client, serverInstance);
@@ -64,10 +63,8 @@ void Command::mode(Client *client, Server* serverInstance) {
 bool Command::mode_channel(Client *client, Server* serverInstance) {
     std::string chanName = this->params[0];
     Channel *chan = serverInstance->getChanByName(chanName);
-    if (chan == NULL) {
-        std::cout << "Channel DOESNT exist!\n";
-        return false;
-    }
+    if (chan == NULL)
+        return (serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getServerHostName(), client->getNickName(), this->params[0])), false);
     /* 
         << MODE #42chan -l
         >> :hostsailor.ro.quakenet.org 482 habex #42chan :You're not channel operator
@@ -131,14 +128,14 @@ bool    Command::mode_o(Channel *chan, Client *client, Server* serverInstance) {
     std::string groom = chan->isClientaMember(this->params[2]);
     if (groom == "") // if he is not in channel
         return (serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHNICK(serverInstance->getServerHostName(), client->getNickName(), this->params[2])), true);
+    std::cout << "{" <<groom<<"}-- groom is in channel\n";
     if (this->params[1] == "+o") {
-        if (chan->isClientChanOp(groom) != "") // if he is a channelOp already we just ignore
+        if (groom[0] == '@') // if he is a channelOp already we just ignore
             return true;
+        std::cout << "-- groom is not an OP already\n";
         std::string modeRply = RPL_OPERATORGIVEREVOKE(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), "+o", this->params[2]);
         serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
-        std::cout << "num of chanOps: " << chan->getAllChanOps().size() << std::endl;
         chan->getAllChanOps().insert("@" + groom);
-        std::cout << "num of chanOps: " << chan->getAllChanOps().size() << std::endl;
         return true;
     }
     if (this->params[1] == "-o") {

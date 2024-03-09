@@ -239,8 +239,8 @@ void    Server::createChannel(std::string chanName, Client *creator, Command *co
     Channel* newChan = new Channel(chanName, creator);
     this->_channels.insert(std::make_pair(chanName, newChan));
     newChan->getAllChanOps().insert(("@" + creator->getNickName()));
-    newChan->insertToMemberFdMap(("@" + creator->getNickName()), creator->getFd()); // he a chanOp!
-    newChan->addMember(("@" + creator->getNickName())); // he a chanOp!
+    newChan->insertToMemberFdMap((creator->getNickName()), creator->getFd()); // he a chanOp!
+    newChan->addMember((creator->getNickName())); // he a chanOp!
     creator->addChannelNameToCollection(newChan->getName());
     std::cout << "CHANNEL : {" << newChan->getName() << "} created!\n";
     /* 
@@ -251,7 +251,7 @@ void    Server::createChannel(std::string chanName, Client *creator, Command *co
     */
    this->sendMsgToClient(creator->getFd(), RPL_JOIN(creator->getNickName(), creator->getUserName(), creator->getIpAddr(), chanName));
    command->names(creator, this);
-   std::cout << getCurrentTime() << std::endl;
+//    std::cout << getCurrentTime() << std::endl;
 //    std::string ss = static_cast<std::string>(getCurrentTime());
 //    serverInstance->sendMsgToClient(creator->getFd(), RPL_TIME(serverInstance->getServerHostName(), creator->getNickName(), newChan->getName(), std::string(getCurrentTime())));
 
@@ -360,6 +360,7 @@ void Server::doStuff(Client* client, Command *command) {
             // check if the killer is an ircOp.
             std::string ircOp = isClientServerOp(client->getNickName());
             if (ircOp == "") {
+                this->sendMsgToClient(client->getFd(), ERR_NOSUCHNICK(this->getServerHostName(), client->getNickName(), command->params[2]));
                 std::cout << "you are not server OP\n";
                 return ;
             }
@@ -407,10 +408,6 @@ void Server::recieveMsg(int clientFd) {
         std::vector<std::string>::iterator it = arr_of_cmds.begin();
         for (; it != arr_of_cmds.end(); ++it) {
             Command *command = new Command((*it));
-
-            // so far all the commands I know has to have at least one parameter!
-                // we can have empty "USER" cmd i think
-            std::cout << "=====> {" << command->raw_cmd << "}" << std::endl;
             if (command->params.empty() && command->cmd != "USER" && command->cmd != "time")
             {
                 this->sendMsgToClient(client->getFd(), ERR_NEEDMOREPARAMS(this->getServerHostName(), command->cmd));

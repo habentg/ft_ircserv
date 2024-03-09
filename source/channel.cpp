@@ -33,14 +33,6 @@ void Channel::addMember(std::string clientNick) {
     this->_members.insert(clientNick);
 }
 
-bool Channel::doesClientAlreadyAMember(std::string clientNick) {
-    std::set<std::string>::iterator m_it = this->_members.lower_bound(clientNick);
-    if ((*m_it) != clientNick)
-        return false;
-    return true;
-}
-
-
 std::string     Channel::getChanKey(void) const {
     return (this->_chanKey);
 }
@@ -63,20 +55,19 @@ std::string    Channel::isClientaMember(std::string clientNick) const {
     if (it != this->_chanOps.end() && (*it) == potentialOp)
         return potentialOp;
     std::set<std::string>::iterator m_it = this->_members.lower_bound(clientNick);
-    if (it != this->_members.end() && (*m_it) == clientNick)
+    if (m_it != this->_members.end() && (*m_it) == clientNick)
         return clientNick;
     return "";
 }
 
 void     Channel::deleteAMember(std::string victim) {
     std::string vic = this->isClientaMember(victim);
-    std::cout << "VIC: " << vic << std::endl;
-    if (vic == "")
-        return ;
+    std::cout << "Victim: " << vic << std::endl;
     if (vic[0] == '@')
         this->_chanOps.erase(vic);
     this->_members.erase(vic);
     this->_member_fd_map.erase(vic);
+    std::cout << "NO=" << this->getNumOfChanMembers() << std::endl;
 }
 
 void    Channel::insertToMemberFdMap(std::string nick, int fd) {

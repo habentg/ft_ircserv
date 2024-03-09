@@ -79,7 +79,6 @@ class Channel {
         size_t                  getNumOfChanMembers(void) const;
         std::string             getName(void) const;
         void                    addMember(std::string clientNick);
-        bool                    doesClientAlreadyAMember(std::string clientNick);
         std::string             getChanKey(void) const;
         std::string             isClientChanOp(std::string clientNick) const;
         std::string             isClientaMember(std::string clientNick) const;
