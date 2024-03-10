@@ -58,7 +58,7 @@ int main(int ac, char **av) {
                     }
                     else if (serverObj->getFdArray()[i].revents == 17) {
                         Client *client = serverObj->getClient(serverObj->getFdArray()[i].fd);
-                        serverObj->removeClient(client, Conn_closed(serverObj->getServerHostName()));
+                        serverObj->removeClient(client, Conn_closed(serverObj->getHostname()));
                     }
                     numboffds = serverObj->getFdArray().size();
                     i++;
@@ -68,8 +68,7 @@ int main(int ac, char **av) {
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
     }
-    std::cout << "Server is shutting down!\n";
-    serverObj->sendMsgToAllClients(Conn_closed(serverObj->getServerHostName()));
+    serverObj->sendMsgToAllClients(Conn_closed(serverObj->getHostname()));
     delete serverObj;
     return 0;
 }

@@ -44,7 +44,7 @@ class Server {
         unsigned short int          getServerPortNumber(void) const;
         std::vector<struct pollfd>& getFdArray(void);
         std::string                 getPassword(void) const;
-        std::string                 getServerHostName(void) const;
+        std::string                 getHostname(void) const;
         Client*                     getClient(int clientFd);
         Client*                     getClientByNick(std::string nick);
         size_t                      getNumberOfClients(void) const;

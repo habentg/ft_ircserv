@@ -34,14 +34,16 @@ class Command {
         void    quit(Client *senderClient, Server *serverInstance);
         void    partLeavChan(Client *senderClient, Server *serverInstance);
         void    names(Client *client, Server *serverInstance);
-        void    mode(Client *client, Server *serverInstance);
+        bool    mode(Client *client, Server *serverInstance);
         void    invite(Client *client, Server *serverInstance);
-        bool    mode_channel(Client *client, Server* serverInstance);
+        void    topic(Client *client, Server *serverInstance);
+        bool    mode_channel(Client *client, Channel *chan, Server* serverInstance);
         void    mode_user(Client *client, Server* serverInstance);
         bool    mode_i(Channel *chan, Client *client, Server* serverInstance);
         bool    mode_o(Channel *chan, Client *client, Server* serverInstance);
         bool    mode_k(Channel *chan, Client *client, Server* serverInstance);
         bool    mode_l(Channel *chan, Client *client, Server* serverInstance);
+        bool    mode_t(Channel *chan, Client *client, Server* serverInstance);
 };
 
 size_t validNickName(std::vector<std::string> nick_params, int clientFd, Server* serverInstance, std::string cmdName);

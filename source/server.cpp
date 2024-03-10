@@ -21,7 +21,7 @@ Server::Server(unsigned short int  portNumber, std::string password) : _serverPo
     this->_serverSocketFd = 0;
     this->_serverPassword = password;
     this->_serverHostName = "";
-    std::cout << "Server created!" << std::endl;
+    std::cout << "Server started!" << std::endl;
 }
 
 Server *Server::createServerInstance(unsigned short int portNumber, std::string password) {
@@ -40,12 +40,12 @@ Server::~Server() {
         t_it = it++;
         Client *client = t_it->second;
         if (client != NULL) {
-            this->removeClient(client, Conn_closed(getServerHostName()));
+            this->removeClient(client, Conn_closed(getHostname()));
             t_it->second = NULL; // Avoid dangling pointer
         }
     }
     close(this->_serverSocketFd);
-    std::cout << "Server Destructor Called!\n";
+    std::cout << "Server shut down!\n";
 }
 
 /* ------------------------------------------------------------------------------------------ */
@@ -69,7 +69,7 @@ Client* Server::getClient(int clientFd) {
 std::string Server::getPassword(void) const {
     return this->_serverPassword;
 }
-std::string Server::getServerHostName(void) const {
+std::string Server::getHostname(void) const {
     return this->_serverHostName;
 }
 
@@ -185,7 +185,7 @@ void Server::sendMsgToClient(int clientFd, std::string msg) {
 */
 std::string Server::constructReplayMsg(std::string senderNick, Client *senderClient, std::string recieverNick, std::string msgToSend) {
     // std::string msg = cmd->raw_cmd.substr(cmd->raw_cmd.find(':') + 1);
-    std::string rply = PRIVMSG_RPLY(senderNick, senderClient->getUserName(), this->getServerHostName(), recieverNick, msgToSend);
+    std::string rply = PRIVMSG_RPLY(senderNick, senderClient->getUserName(), this->getHostname(), recieverNick, msgToSend);
     return rply;
 }
 
@@ -253,7 +253,7 @@ void    Server::createChannel(std::string chanName, Client *creator, Command *co
    command->names(creator, this);
 //    std::cout << getCurrentTime() << std::endl;
 //    std::string ss = static_cast<std::string>(getCurrentTime());
-//    serverInstance->sendMsgToClient(creator->getFd(), RPL_TIME(serverInstance->getServerHostName(), creator->getNickName(), newChan->getName(), std::string(getCurrentTime())));
+//    serverInstance->sendMsgToClient(creator->getFd(), RPL_TIME(serverInstance->getHostname(), creator->getNickName(), newChan->getName(), std::string(getCurrentTime())));
 
 }
 
@@ -304,6 +304,8 @@ void    Server::channelRelatedOperations(Client* client, Command *command) {
         command->mode(client, this); 
     else if (command->cmd == "INVITE")
         command->invite(client, this); 
+    else if (command->cmd == "TOPIC")
+        command->topic(client, this); 
 }
 
 /* Connected Client can DO these stuff basicly:
@@ -316,7 +318,7 @@ void    Server::channelRelatedOperations(Client* client, Command *command) {
  */
 void Server::doStuff(Client* client, Command *command) {
     if (command->cmd == "PING") {
-        this->sendMsgToClient(client->getFd(), PONG(this->getServerHostName()));
+        this->sendMsgToClient(client->getFd(), PONG(this->getHostname()));
         return ;
     }
     // if (command->cmd == "time") {
@@ -337,6 +339,7 @@ void Server::doStuff(Client* client, Command *command) {
         return ;
     }
     /* Channel and channel related features --- big job */
+    std::cout << "FULL Cmd: " << command->raw_cmd << std::endl;
     if (command->cmd == "JOIN" || command->cmd == "KICK" || command->cmd == "NAMES" || command->cmd == "MODE" || command->cmd == "PART" || command->cmd == "INVITE" || command->cmd == "TOPIC") {
         this->channelRelatedOperations(client, command);
         return ;
@@ -349,18 +352,18 @@ void Server::doStuff(Client* client, Command *command) {
         }
         // [euroserv.fr.quakenet.org 311 tesfa_ tesfa ~dd 5.195.225.158 * :H H]
         // [<hostname> 311 <requesterNick> <nick> <username> <ipadd> * :<real name>]
-        std::string rpl_who = ":"+this->getServerHostName()+" 311 "+client->getNickName()+" "+whoClient->getNickName()+" "+whoClient->getUserName()+" "+whoClient->getIpAddr()+" * :"+whoClient->getRealName()+"\r\n";
+        std::string rpl_who = ":"+this->getHostname()+" 311 "+client->getNickName()+" "+whoClient->getNickName()+" "+whoClient->getUserName()+" "+whoClient->getIpAddr()+" * :"+whoClient->getRealName()+"\r\n";
         this->sendMsgToClient(client->getFd(), rpl_who);
     }
     if (command->cmd == "kill") {
         std::string potencialServerOp = "@%" + client->getNickName();
         if (*(this->_serverOperators.lower_bound(potencialServerOp)) != potencialServerOp)
-            this->sendMsgToClient(client->getFd(), ERR_NOPRIVILEGES(this->getServerHostName(), client->getNickName()));
+            this->sendMsgToClient(client->getFd(), ERR_NOPRIVILEGES(this->getHostname(), client->getNickName()));
         else {
             // check if the killer is an ircOp.
             std::string ircOp = isClientServerOp(client->getNickName());
             if (ircOp == "") {
-                this->sendMsgToClient(client->getFd(), ERR_NOSUCHNICK(this->getServerHostName(), client->getNickName(), command->params[2]));
+                this->sendMsgToClient(client->getFd(), ERR_NOSUCHNICK(this->getHostname(), client->getNickName(), command->params[2]));
                 std::cout << "you are not server OP\n";
                 return ;
             }
@@ -390,8 +393,12 @@ void Server::recieveMsg(int clientFd) {
         return ;
     std::memset(buffer, 0, buffer_size);
     int bytes_received = recv(clientFd, buffer, buffer_size, 0);
-    if (bytes_received < 1) {
-        std::cout << "this is the bytes recived: " << bytes_received << std::endl;
+    if (bytes_received == 0) {
+        this->removeClient(client, Conn_closed(this->getHostname()));
+        return ;
+    }
+    if (bytes_received < 0) {
+        std::cout << "error recieving: " << bytes_received << std::endl;
         return ;
     }
     buffer[bytes_received] = '\0'; // Null-terminate the received data coz recv() doesnt
@@ -410,7 +417,7 @@ void Server::recieveMsg(int clientFd) {
             Command *command = new Command((*it));
             if (command->params.empty() && command->cmd != "USER" && command->cmd != "time")
             {
-                this->sendMsgToClient(client->getFd(), ERR_NEEDMOREPARAMS(this->getServerHostName(), command->cmd));
+                this->sendMsgToClient(client->getFd(), ERR_NEEDMOREPARAMS(this->getHostname(), command->cmd));
                 return ;
             }
             // we register the client first, (basicly assign nickname, username and other identifiers to the new connection so it can interact with other users)

@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/28 12:54:51 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/03/07 20:11:32 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/10 14:35:14 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,7 +57,7 @@ bool    Server::authenticateClient(Client *cl, Command *command) {
             command->user(cl, this);
     }
     else {
-        this->sendMsgToClient(cl->getFd(), ERR_REGISTER_FIRST(this->getServerHostName()));
+        this->sendMsgToClient(cl->getFd(), ERR_REGISTER_FIRST(this->getHostname()));
         return false;
     }
     return true;
@@ -81,15 +81,15 @@ void Server::userAuthenticationAndWelcome(Client* client, Command *command) {
     if (client->getIsAuthenticated() && client->getUserName() != "" && client->getNickName() != "") {
         client->setIsConnected(true);
         this->_nick_fd_map.insert(std::pair<std::string, int>(client->getNickName(), client->getFd()));
-        this->sendMsgToClient(client->getFd(), RPL_WELCOME(this->getServerHostName(), client->getUserName(), client->getNickName()));
-        this->sendMsgToClient(client->getFd(), RPL_YOURHOST(this->getServerHostName(), client->getNickName()));
-        this->sendMsgToClient(client->getFd(), RPL_CREATED(this->getServerHostName(), client->getNickName()));
-        this->sendMsgToClient(client->getFd(), RPL_MYINFO(this->getServerHostName(), client->getNickName()));
-        this->sendMsgToClient(client->getFd(), RPL_ISUPPORT(this->getServerHostName(), client->getNickName()));
+        this->sendMsgToClient(client->getFd(), RPL_WELCOME(this->getHostname(), client->getUserName(), client->getNickName()));
+        this->sendMsgToClient(client->getFd(), RPL_YOURHOST(this->getHostname(), client->getNickName()));
+        this->sendMsgToClient(client->getFd(), RPL_CREATED(this->getHostname(), client->getNickName()));
+        this->sendMsgToClient(client->getFd(), RPL_MYINFO(this->getHostname(), client->getNickName()));
+        this->sendMsgToClient(client->getFd(), RPL_ISUPPORT(this->getHostname(), client->getNickName()));
         /* MOTD */
-        this->sendMsgToClient(client->getFd(), RPL_MOTDSTART(this->getServerHostName(), client->getNickName()));
-        this->sendMsgToClient(client->getFd(), RPL_MOTD(this->getServerHostName(), client->getNickName()));
-        this->sendMsgToClient(client->getFd(), RPL_ENDOFMOTD(this->getServerHostName(), client->getNickName()));
+        this->sendMsgToClient(client->getFd(), RPL_MOTDSTART(this->getHostname(), client->getNickName()));
+        this->sendMsgToClient(client->getFd(), RPL_MOTD(this->getHostname(), client->getNickName()));
+        this->sendMsgToClient(client->getFd(), RPL_ENDOFMOTD(this->getHostname(), client->getNickName()));
         // if there is no serverOp, lets give him the honor
         if (this->_serverOperators.size() == 0)
             this->_serverOperators.insert("@%" + client->getNickName());
@@ -108,9 +108,9 @@ void Server::registerClient(Client *client, Command *command) {
 
     if (command->cmd == "CAP") {
         if (command->params[0] == "LS")
-            this->sendMsgToClient(client->getFd(), CAP_LS_RESP(this->getServerHostName())); //check those (hard-coded responses)
+            this->sendMsgToClient(client->getFd(), CAP_LS_RESP(this->getHostname())); //check those (hard-coded responses)
         else if (command->params[0] == "REQ")
-            this->sendMsgToClient(client->getFd(), CAP_ACK_RESP(this->getServerHostName()));
+            this->sendMsgToClient(client->getFd(), CAP_ACK_RESP(this->getHostname()));
     }
     else {
         this->userAuthenticationAndWelcome(client, command);

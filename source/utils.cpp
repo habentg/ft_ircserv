@@ -76,19 +76,3 @@ void printVector(std::vector<std::string> vec) {
     }
     std::cout << "]\n";
 }
-
-std::string timeToString(time_t time) {
-    char buffer[80];
-    std::memset(buffer, 0, sizeof(buffer));
-    std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", std::localtime(&time));
-    return std::string(buffer);
-}
-
-time_t getCurrentTime(void) {
-    // Get current time
-    time_t rawtime;
-    struct tm* timeinfo;
-    std::time(&rawtime);
-    return (rawtime);
-}
-

@@ -17,9 +17,11 @@ Channel::Channel(std::string chanName, Client *creator) {
     this->_chanKey = "";
     this->_creator = creator->getNickName();
     this->_chanLimit = 0;
+    this->_chanTopic = "";
 }
 
 Channel::~Channel(void) {
+    std::cout << "Channel named [" << this->getName() << "] got deleted!\n";
 }
 
 std::string Channel::getName(void) const{
@@ -61,13 +63,11 @@ std::string    Channel::isClientaMember(std::string clientNick) const {
 }
 
 void     Channel::deleteAMember(std::string victim) {
-    std::string vic = this->isClientaMember(victim);
-    std::cout << "Victim: " << vic << std::endl;
-    if (vic[0] == '@')
-        this->_chanOps.erase(vic);
-    this->_members.erase(vic);
-    this->_member_fd_map.erase(vic);
-    std::cout << "NO=" << this->getNumOfChanMembers() << std::endl;
+    std::cout << "NICK to be deleted: {" << victim << "}" <<std::endl;
+    this->_chanOps.erase("@" + victim);
+    this->_members.erase(victim);
+    this->_member_fd_map.erase(victim);
+    std::cout << "NO=" << this->_members.size() << std::endl;
 }
 
 void    Channel::insertToMemberFdMap(std::string nick, int fd) {
@@ -85,8 +85,8 @@ void    Channel::insertToMemberFdMap(std::string nick, int fd) {
         if (chanNotice == true)
             serverInstance->sendMsgToClient(recvClient->getFd(), msg);
         else if (senderClient->getFd() != recvClient->getFd()) // #define PRIVMSG_RPLY(senderNick, senderUsername, clientIp, revieverNick, msg)
-            serverInstance->sendMsgToClient(recvClient->getFd(), PRIVMSG_RPLY(senderNick, senderClient->getUserName(), senderClient->getIpAddr(), this->getName(), msg));
-            // serverInstance->sendMsgToClient(recvClient->getFd(), serverInstance->constructReplayMsg(senderNick, senderClient, this->getName(), msg));
+            serverInstance->sendMsgToClient(recvClient->getFd(), serverInstance->constructReplayMsg(senderNick, senderClient, this->getName(), msg));
+            // serverInstance->sendMsgToClient(recvClient->getFd(), PRIVMSG_RPLY(senderNick, senderClient->getUserName(), senderClient->getIpAddr(), this->getName(), msg));
         recvClient = NULL;
     }
  }
@@ -121,4 +121,11 @@ std::set<std::string>&  Channel::getAllChanOps(void) {
 
 std::set<std::string>&  Channel::getAllInvitees(void) {
     return (this->_invitedUser);
+}
+
+std::string             Channel::getTopic(void) const {
+    return this->_chanTopic;
+}
+void          Channel::setTopic(std::string   newTopic) {
+    this->_chanTopic = newTopic;
 }

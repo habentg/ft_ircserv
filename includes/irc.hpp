@@ -91,6 +91,8 @@
     >> :stockholm.se.quakenet.org 473 bfk #42chan :Cannot join channel, you must be invited (+i)
 */
 #define ERR_INVITEONLYCHAN(hostname, nick, chanName)                std::string(":"+hostname+" 473 "+nick+" "+chanName+" :channel is invite only, you cant join\r\n")
+/* >> :atw.hu.quakenet.org 472 habex_ f :is unknown mode char to me */
+#define ERR_UNKNOWNMODECHAR(hostname, nick, char)                   std::string(":"+hostname+" 472 "+nick+" "+char+" :is unknown mode character\r\n")
 /* 
     << INVITE zfk #42chan
     >> :underworld2.no.quakenet.org 443 afk zfk #42chan :is already on channel
@@ -112,7 +114,8 @@
 #define RPL_OPERATORGIVEREVOKE(op_nick, op_username, op_ip, chanName, optype, newopnick)  std::string(userHostMask(op_nick, op_username, op_ip)+" MODE "+chanName+" "+optype+" "+newopnick+"\r\n")
 #define RPL_YouIsInvited(op_nick, op_username, op_ip, chanName, inviteeNick)                std::string(userHostMask(op_nick, op_username, op_ip)+" INVITE "+" "+inviteeNick+" "+chanName+" "+"\r\n")
 #define RPL_TIME(hostname, nick, chanName, time)                                            std::string(":"+hostname+" 329 "+nick+" "+chanName+" "+time+"\r\n")
-
+#define RPL_TOPIC(hostname, chanName, msg)                                                  std::string(":"+hostname+" "+chanName+": "+msg+"\r\n")
+#define TOPIC_CHANGE(nick, username, ip, chanName, topicMsg)                   std::string(userHostMask(nick, username, ip)+" TOPIC "+chanName+" :"+topicMsg+"\r\n")
 
 /* Error responses */
 # define INCORRECT_ARGS "Error: Incorrect Numner of arguments!!\n    Usage: ./ft_ircserv <port number <password>"
@@ -130,6 +133,4 @@
 unsigned short int          validate_input(int ac, char **av);
 std::vector<std::string>    split(std::string& str, char delimiter);
 void                        printVector(std::vector<std::string> vec);
-time_t                      getCurrentTime(void);
-std::string                 timeToString(time_t time);
 #endif // !IRC_HPP

@@ -72,6 +72,7 @@ class Channel {
         std::set<char>                  _chanModes;
         unsigned int                    _chanLimit;
         std::set<std::string>           _invitedUser;
+        std::string                     _chanTopic;
     public:
         Channel(std::string chanName, Client *creator);
         ~Channel();
@@ -93,5 +94,7 @@ class Channel {
         bool                    isModeOn(char mode);
         std::set<std::string>&  getAllChanOps();
         std::set<std::string>&  getAllInvitees();
+        std::string             getTopic(void) const;
+        void                    setTopic(std::string  newTopic);
 };
 #endif // !CHANNEL_HPP
