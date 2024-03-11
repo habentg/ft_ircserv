@@ -337,7 +337,7 @@ void Server::executeMsg(int clientFd) {
     if (client == NULL)
         return ;
     std::vector<std::string> arr_of_cmds = split(client->getRecivedBuffer(), '\0');
-    client->getRecivedBuffer() = ""; // empty the buffer - coz its splited and changed to CMD;
+    client->getRecivedBuffer().erase(); // empty the buffer - coz its splited and changed to CMD;
     for (std::vector<std::string>::iterator it = arr_of_cmds.begin(); it != arr_of_cmds.end(); ++it) {
         Command *command = new Command((*it));
         if (command->params.empty() && command->cmd != "USER") {
