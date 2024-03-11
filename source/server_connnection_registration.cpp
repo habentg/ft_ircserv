@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/28 12:54:51 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/03/10 14:35:14 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/11 19:25:34 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,7 +29,7 @@ void Server::acceptNewConnection(void) {
     if (newClientFd == -1) {
         throw std::runtime_error("Error: accepting connections!");
     }
-    if (fcntl(newClientFd, F_SETFL, O_NONBLOCK) < -1)
+    if (fcntl(newClientFd, F_SETFL, O_NONBLOCK) < 0)
         throw std::runtime_error("Error: fcntl from accept new connection");
     this->addToFdArray(newClientFd);
     
@@ -56,10 +56,8 @@ bool    Server::authenticateClient(Client *cl, Command *command) {
         if (command->cmd == "USER")
             command->user(cl, this);
     }
-    else {
-        this->sendMsgToClient(cl->getFd(), ERR_REGISTER_FIRST(this->getHostname()));
-        return false;
-    }
+    else
+        return (this->sendMsgToClient(cl->getFd(), ERR_REGISTER_FIRST(this->getHostname())), false);
     return true;
 }
 

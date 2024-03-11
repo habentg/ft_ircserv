@@ -39,7 +39,7 @@ void    Command::password(Client *client, Server* serverInstance) {
     else {
         serverInstance->sendMsgToClient(client->getFd(), ERR_PASSWDMISMATCH(serverInstance->getHostname()));
         if (client->getWrongPassCount() == 2) {
-            serverInstance->removeClient(client, std::string("3 wrong password attempt"));
+            serverInstance->removeClient(client, std::string("3 wrong password attempt\r\n"));
             return ;
         } else
             client->setWrongPassCount(client->getWrongPassCount() + 1);
@@ -156,7 +156,7 @@ void Command::privmsg(Client *senderClient, Server *serverInstance) {
             serverInstance->sendMsgToClient(senderClient->getFd(), ERR_YouIsNotInCHANNEL(serverInstance->getHostname(), senderClient->getNickName(), chan->getName()));
             return ;
         }
-        serverInstance->sendMessageToChan(chan, sender, msgPriv, false);
+        serverInstance->forwardMsgToChan(chan, sender, msgPriv, false);
         return ;
     }
     int recieverFd = serverInstance->isClientAvailable(this->params[0]);
@@ -164,7 +164,7 @@ void Command::privmsg(Client *senderClient, Server *serverInstance) {
         serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOSUCHNICK(serverInstance->getHostname(), senderClient->getNickName(), this->params[0]));
         return ;
     }
-    serverInstance->sendMsgToClient(recieverFd, serverInstance->constructReplayMsg(senderClient->getNickName(), senderClient, this->params[0], msgPriv));
+    serverInstance->sendMsgToClient(recieverFd, PRIVMSG_RPLY(senderClient->getNickName(), senderClient->getUserName(), senderClient->getIpAddr(), serverInstance->getClient(recieverFd)->getNickName(), msgPriv));
 }
 
 /* Channel naming:
@@ -229,7 +229,7 @@ void    Command::join(Client *client, Server *serverInstance) {
     chann->insertToMemberFdMap(client->getNickName(), client->getFd());
     client->addChannelNameToCollection(chann->getName());
     std::string letThemKnow = RPL_JOIN(client->getNickName(), client->getUserName(), client->getIpAddr(), chann->getName());
-    serverInstance->sendMessageToChan(chann, client->getNickName(), letThemKnow, true);
+    serverInstance->forwardMsgToChan(chann, client->getNickName(), letThemKnow, true);
     this->names(client, serverInstance);
     /* 18:40 -!- Channel #42chan created Fri Mar  8 18:40:38 2024 */ // DO THIS
     /* >> :hostsailor.ro.quakenet.org 329 tom_ #sdff 1709910616 */
@@ -287,7 +287,7 @@ void    Command::kick(Client *senderClient, Server *serverInstance) {
         >> :htg!~dd@5.195.225.158 KICK #ab42chan tesfa :bye bigman
         >> :habex!~hab@5.195.225.158 KICK #42chan tesfa :habex
      */
-    serverInstance->sendMessageToChan(chan, chanOp, kickNotice, true);
+    serverInstance->forwardMsgToChan(chan, chanOp, kickNotice, true);
     serverInstance->removeClientFromChan(victim, chan);    
 }
 
@@ -306,7 +306,7 @@ void    Command::partLeavChan(Client *senderClient, Server *serverInstance) {
     if (this->raw_cmd.find(':') != std::string::npos)
         reason = this->raw_cmd.substr(this->raw_cmd.find(':') + 1);
     std::string partMsg = RPL_PART(senderClient->getNickName(), senderClient->getUserName(), senderClient->getIpAddr(), chan->getName(), reason);
-    serverInstance->sendMessageToChan(chan, senderClient->getNickName(), partMsg, true);
+    serverInstance->forwardMsgToChan(chan, senderClient->getNickName(), partMsg, true);
     serverInstance->removeClientFromChan(senderClient->getNickName(), chan);
     return ;
 }
@@ -332,7 +332,7 @@ void Command::names(Client *client, Server *serverInstance) {
     std::set<std::string> nicknames = channel->getAllMembersNick(); // I USED reference (des kbleka ile tomas)
     std::set<std::string>::iterator it_n = nicknames.begin();
     for (; it_n != nicknames.end(); ++it_n) {
-        if (channel->isClientChanOp((*it_n)) == "") {
+        if ((*it_n)[0] == '@') {
             namesReply += (*it_n) + " ";
         }
     }
@@ -419,13 +419,17 @@ void    Command::topic(Client *client, Server *serverInstance) {
         serverInstance->sendMsgToClient(client->getFd(), ERR_YouIsNotInCHANNEL(serverInstance->getHostname(), client->getNickName(), chan->getName()));
         return ;
     }
+    // all members can see topic of the channel
+    //but to change it you have to be an OP
     if (this->params.size() == 1) {
+        // if (chan->isModeOn('t') == true) {
+        //     serverInstance->sendMsgToClient(client->getFd(), ERR_CHANOPRIVSNEEDED(serverInstance->getHostname(), client->getNickName(), chan->getName()));
+        //     return ;
+        // }
         serverInstance->sendMsgToClient(client->getFd(), RPL_TOPIC(serverInstance->getHostname(), chan->getName(), chan->getTopic()));
         std::cout << "who set it and the date topic set will be sent as wll\n";
         return ;
     }
-    // all members can see topic of the channel
-    //but to change it you have to be an OP
     if (chanOp[0] != '@') {
         serverInstance->sendMsgToClient(client->getFd(), ERR_CHANOPRIVSNEEDED(serverInstance->getHostname(), client->getNickName(), chan->getName()));
         return ;
@@ -434,6 +438,6 @@ void    Command::topic(Client *client, Server *serverInstance) {
     std::string newTopic = this->raw_cmd.substr(this->raw_cmd.find(':') + 1);
     std::cout << "NEW topic : " << newTopic << std::endl;
     chan->setTopic(newTopic);
-    serverInstance->sendMessageToChan(chan, client->getNickName(), TOPIC_CHANGE(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), chan->getTopic()), true);
+    serverInstance->forwardMsgToChan(chan, client->getNickName(), TOPIC_CHANGE(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), chan->getTopic()), true);
     std::cout << "topic changed\n";
 }

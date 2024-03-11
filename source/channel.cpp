@@ -42,15 +42,6 @@ void            Channel::setChanKey(std::string newKey) {
     this->_chanKey = newKey;
 }
 
-std::string    Channel::isClientChanOp(std::string clientNick) const {
-    if (clientNick[0] == '@')
-        return clientNick;
-    std::string potentialOp = "@" + clientNick;
-    std::set<std::string>::iterator it = this->_chanOps.lower_bound(potentialOp);
-    if ((*it) != potentialOp)
-        return "";
-    return potentialOp;
-}
 std::string    Channel::isClientaMember(std::string clientNick) const {
     std::string potentialOp = "@" + clientNick;
     std::set<std::string>::iterator it = this->_chanOps.lower_bound(potentialOp);
@@ -63,11 +54,9 @@ std::string    Channel::isClientaMember(std::string clientNick) const {
 }
 
 void     Channel::deleteAMember(std::string victim) {
-    std::cout << "NICK to be deleted: {" << victim << "}" <<std::endl;
     this->_chanOps.erase("@" + victim);
     this->_members.erase(victim);
     this->_member_fd_map.erase(victim);
-    std::cout << "NO=" << this->_members.size() << std::endl;
 }
 
 void    Channel::insertToMemberFdMap(std::string nick, int fd) {
@@ -85,8 +74,7 @@ void    Channel::insertToMemberFdMap(std::string nick, int fd) {
         if (chanNotice == true)
             serverInstance->sendMsgToClient(recvClient->getFd(), msg);
         else if (senderClient->getFd() != recvClient->getFd()) // #define PRIVMSG_RPLY(senderNick, senderUsername, clientIp, revieverNick, msg)
-            serverInstance->sendMsgToClient(recvClient->getFd(), serverInstance->constructReplayMsg(senderNick, senderClient, this->getName(), msg));
-            // serverInstance->sendMsgToClient(recvClient->getFd(), PRIVMSG_RPLY(senderNick, senderClient->getUserName(), senderClient->getIpAddr(), this->getName(), msg));
+            serverInstance->sendMsgToClient(recvClient->getFd(), PRIVMSG_RPLY(senderNick, senderClient->getUserName(), senderClient->getIpAddr(), this->getName(), msg));
         recvClient = NULL;
     }
  }

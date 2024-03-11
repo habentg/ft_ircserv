@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 09:45:02 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/03/10 20:51:46 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/11 19:36:00 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,8 +41,6 @@ bool Command::mode(Client *client, Server* serverInstance) {
             serverInstance->sendMsgToClient(client->getFd(), RPL_CHANNELMODEIS(serverInstance->getHostname(), client->getNickName(), chan->getName(), modesOn));
             return true;
         }
-        if (sender[0] != '@')
-            return (serverInstance->sendMsgToClient(client->getFd(), ERR_CHANOPRIVSNEEDED(serverInstance->getHostname(), client->getNickName(), chan->getName())), false);
         this->mode_channel(client, chan, serverInstance);
     }
     else
@@ -79,7 +77,9 @@ bool Command::mode_channel(Client *client, Channel *chan, Server* serverInstance
        return (this->mode_l(chan, client, serverInstance));
     if (this->params[1] == "t" || this->params[1] == "+t" || this->params[1] == "-t")
        return (this->mode_t(chan, client, serverInstance));
-    serverInstance->sendMsgToClient(client->getFd(), ERR_UNKNOWNMODECHAR(serverInstance->getHostname(), client->getNickName(), "F"));
+    // for all the other mode options
+    std::string unhandled = "<" + this->params[1] +">";
+    serverInstance->sendMsgToClient(client->getFd(), ERR_UNKNOWNMODECHAR(serverInstance->getHostname(), client->getNickName(), unhandled));
     return false;
 }
 
@@ -109,6 +109,8 @@ bool Command::mode_channel(Client *client, Channel *chan, Server* serverInstance
         >> :gaim!~dd@5.195.225.158 MODE #habexirc +so tesfa
     */
 bool    Command::mode_o(Channel *chan, Client *client, Server* serverInstance) {
+    if (chan->isClientaMember(client->getNickName())[0] != '@')
+        return (serverInstance->sendMsgToClient(client->getFd(), ERR_CHANOPRIVSNEEDED(serverInstance->getHostname(), client->getNickName(), chan->getName())), false);
     std::string groom = chan->isClientaMember(this->params[2]);
     if (groom == "") // if he is not in channel
         return (serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHNICK(serverInstance->getHostname(), client->getNickName(), this->params[2])), true);
@@ -116,7 +118,7 @@ bool    Command::mode_o(Channel *chan, Client *client, Server* serverInstance) {
         if (groom[0] == '@') // if he is a channelOp already we just ignore
             return true;
         std::string modeRply = RPL_OPERATORGIVEREVOKE(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), "+o", this->params[2]);
-        serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
+        serverInstance->forwardMsgToChan(chan, client->getNickName(), modeRply, true);
         chan->getAllChanOps().insert("@" + groom);
         return true;
     }
@@ -124,11 +126,13 @@ bool    Command::mode_o(Channel *chan, Client *client, Server* serverInstance) {
     if (groom[0] != '@') // if he is a groom is not OP, we just ignore
         return true;
     std::string modeRply = RPL_OPERATORGIVEREVOKE(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), "-o", this->params[2]);
-    serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
-    chan->getAllChanOps().erase("@" + groom);
+    serverInstance->forwardMsgToChan(chan, client->getNickName(), modeRply, true);
+    chan->getAllChanOps().erase(groom);
     return false;
 }
 bool    Command::mode_i(Channel *chan, Client *client, Server* serverInstance) {
+    if (chan->isClientaMember(client->getNickName())[0] != '@')
+        return (serverInstance->sendMsgToClient(client->getFd(), ERR_CHANOPRIVSNEEDED(serverInstance->getHostname(), client->getNickName(), chan->getName())), false);
     if (this->params[1] == "i" || this->params[1] == "+i") {
         // check if channel is alrady an "invite-only" channel
         if (chan->isModeOn('i'))
@@ -136,7 +140,8 @@ bool    Command::mode_i(Channel *chan, Client *client, Server* serverInstance) {
         // let them know that we exclusive!!!!!!
         chan->getChannelModes().insert('i');
         std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), std::string("+i"));
-        serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
+        serverInstance->forwardMsgToChan(chan, client->getNickName(), modeRply, true);
+        return true;
     }
     // setting -i
     if (chan->isModeOn('i') == false)
@@ -144,7 +149,7 @@ bool    Command::mode_i(Channel *chan, Client *client, Server* serverInstance) {
     // let them know that we aint exclusive anymore!!!!!
     chan->getChannelModes().erase('i');
     std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), std::string("-i"));
-    serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
+    serverInstance->forwardMsgToChan(chan, client->getNickName(), modeRply, true);
     return false;
 }
 /* Format:
@@ -165,6 +170,8 @@ bool    Command::mode_i(Channel *chan, Client *client, Server* serverInstance) {
             << MODE #42chan -l
         */
 bool    Command::mode_l(Channel *chan, Client *client, Server* serverInstance) {
+    if (chan->isClientaMember(client->getNickName())[0] != '@')
+        return (serverInstance->sendMsgToClient(client->getFd(), ERR_CHANOPRIVSNEEDED(serverInstance->getHostname(), client->getNickName(), chan->getName())), false);
     if (this->params[1] == "-l") {
         if (chan->isModeOn('l') == false) { // if limit wasnot set ... just ignore
             return (false);
@@ -173,7 +180,7 @@ bool    Command::mode_l(Channel *chan, Client *client, Server* serverInstance) {
         chan->getChannelModes().erase('l');
         // let the group know that setting has changed!
         std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), std::string("-l"));
-        serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
+        serverInstance->forwardMsgToChan(chan, client->getNickName(), modeRply, true);
         return (chan->setUsersLimit(0), true);
     }
     // setting +l/l
@@ -185,20 +192,22 @@ bool    Command::mode_l(Channel *chan, Client *client, Server* serverInstance) {
     // check if the num is less than zero before setting it!
     chan->getChannelModes().insert('l'); // adding 'l' to indicate that we have the userlimit set for the channel
     std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), std::string("+l " + this->params[2]));
-    serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
+    serverInstance->forwardMsgToChan(chan, client->getNickName(), modeRply, true);
     /* we will twik the joining a channel feature to check for user limit before a client joins */
     return (chan->setUsersLimit(num), true);
 }
 
 /* the reak irc is behaving in a wierd way when unsetting the key multiple times when it wasnt set */
 bool    Command::mode_k(Channel *chan, Client *client, Server* serverInstance) {
+    if (chan->isClientaMember(client->getNickName())[0] != '@')
+        return (serverInstance->sendMsgToClient(client->getFd(), ERR_CHANOPRIVSNEEDED(serverInstance->getHostname(), client->getNickName(), chan->getName())), false);
     if (this->params[1] == "-k") {
         if (chan->isModeOn('k') == false) { 
             return (std::cout << "the key wasnt set!\n", false);
         }
         chan->getChannelModes().erase('k');
         std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), std::string("-k " + chan->getChanKey()));
-        serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
+        serverInstance->forwardMsgToChan(chan, client->getNickName(), modeRply, true);
         return (chan->setChanKey(""), true);
     }
     // setting +k/k
@@ -216,16 +225,23 @@ bool    Command::mode_k(Channel *chan, Client *client, Server* serverInstance) {
     else
         chan->setChanKey(this->params[2]);
     std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), std::string("+k " + chan->getChanKey()));
-    serverInstance->sendMessageToChan(chan, client->getNickName(), modeRply, true);
+    serverInstance->forwardMsgToChan(chan, client->getNickName(), modeRply, true);
     return (true);
 }
 
 bool    Command::mode_t(Channel *chan, Client *client, Server* serverInstance) {
+    if (chan->isClientaMember(client->getNickName())[0] != '@')
+        return (serverInstance->sendMsgToClient(client->getFd(), ERR_CHANOPRIVSNEEDED(serverInstance->getHostname(), client->getNickName(), chan->getName())), false);
     if (this->params[1] == "-t") {
         if (chan->isModeOn('t') == false)
-            return (std::cout << "chan is not 't' \n", false);
+            return false;
+        chan->getChannelModes().erase('t');
+        return true;
     }
-    std::cout << "we in +t\n";
+    if (chan->isModeOn('t') == true)
+        return false;
+    chan->getChannelModes().insert('t');
+    return true;
 }
 /* MODES - applied to users */
 void Command::mode_user(Client *client, Server* serverInstance) {

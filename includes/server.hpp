@@ -55,12 +55,12 @@ class Server {
         void                        registerClient(Client *client, Command *command);
         bool                        authenticateClient(Client *cl, Command *command);
         void                        userAuthenticationAndWelcome(Client* cl, Command *command);
-        void                        recieveMsg(int clientFd);
+        Client                      *recieveMsg(int clientFd);
+        void                        executeMsg(int clientFd);
         int                         isClientAvailable(std::string nick) const;
         void                        sendMsgToClient(int clientFd, std::string msg);
         void                        sendMsgToAllClients(std::string msg);
-        void                        doStuff(Client* client, Command *command);
-        std::string                 constructReplayMsg(std::string senderNick, Client *senderClient, std::string recieverNick, std::string msgToSend);
+        bool                        doStuff(Client* client, Command *command);
         void                        removeClient(Client *senderClient, std::string quitMsg);
         std::string                 isClientServerOp(std::string nick);
 
@@ -71,7 +71,7 @@ class Server {
         Channel   *getChanByName(std::string chanName);
         void      deleteAChannel(Channel *chan);
         void      removeClientFromChan(std::string victimNick, Channel *chan);
-        void       sendMessageToChan(Channel *chan, std::string sender, std::string msg, bool chanNotice);
+        void       forwardMsgToChan(Channel *chan, std::string sender, std::string msg, bool chanNotice);
         
 };
 

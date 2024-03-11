@@ -98,7 +98,7 @@ std::string Server::isClientServerOp(std::string nick) {
 /* ------------------------------------------------------------------------------------------ */
 /*                           Creating Socket and Listening                                    */
 /* ------------------------------------------------------------------------------------------ */
-void Server::server_listen_setup(char *portNumber) {
+void Server::server_listen_setup(char *service) {
     int sockfd;
     int enabler = 1; // for setsockopt() -> to avoid "is already in use" error
     struct addrinfo hints;
@@ -113,7 +113,7 @@ void Server::server_listen_setup(char *portNumber) {
     hints.ai_flags = AI_PASSIVE;
 
     struct addrinfo *res;
-    int status = getaddrinfo(NULL, portNumber, &hints, &res);
+    int status = getaddrinfo(NULL, service, &hints, &res);
     if (status != 0)
         throw std::runtime_error(gai_strerror(status));
     if (res == NULL)
@@ -123,7 +123,7 @@ void Server::server_listen_setup(char *portNumber) {
         throw std::runtime_error("Error: creating socket");
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enabler, sizeof(int)))
         throw std::runtime_error("Error: setsockopt");
-    if (fcntl(sockfd, F_SETFL, O_NONBLOCK) < -1)
+    if (fcntl(sockfd, F_SETFL, O_NONBLOCK) < 0)
         throw std::runtime_error("Error: fcntl");
     if (bind(sockfd, res->ai_addr, res->ai_addrlen) < 0)
         throw std::runtime_error("Error: binding socket");
@@ -177,18 +177,6 @@ void Server::sendMsgToClient(int clientFd, std::string msg) {
         throw std::runtime_error("Error: sending message to client");
 }
 
-/* After connection establishment:
-    1. client is sending a PING and we should respond with a PONG (or it will exit after 301 seconds)
-    2. PRIVMSG:-
-        * [PRIVMSG <recipient nickname> :<message to be sent>] - is the format
-        * we should check if nick
-*/
-std::string Server::constructReplayMsg(std::string senderNick, Client *senderClient, std::string recieverNick, std::string msgToSend) {
-    // std::string msg = cmd->raw_cmd.substr(cmd->raw_cmd.find(':') + 1);
-    std::string rply = PRIVMSG_RPLY(senderNick, senderClient->getUserName(), this->getHostname(), recieverNick, msgToSend);
-    return rply;
-}
-
 /* Removing a Client and Closing connection
     > remove the client from everything he is involved to (IMPORTANT!)
     > distruct the object
@@ -205,7 +193,7 @@ void Server::removeClient(Client *cl, std::string quitMsg) {
         /* this NOTICE has to be sent to all the channels he was in
             06:59 -!- tesfa [~dd@5.195.225.158] has quit [Quit: leaving]
         */
-        this->sendMessageToChan(chan, cl->getNickName(), quitMsg, true);
+        this->forwardMsgToChan(chan, cl->getNickName(), quitMsg, true);
         this->removeClientFromChan(cl->getNickName(), chan);
         chan = NULL;
     }
@@ -243,18 +231,8 @@ void    Server::createChannel(std::string chanName, Client *creator, Command *co
     newChan->addMember((creator->getNickName())); // he a chanOp!
     creator->addChannelNameToCollection(newChan->getName());
     std::cout << "CHANNEL : {" << newChan->getName() << "} created!\n";
-    /* 
-        << JOIN #lef
-        >> :tesfa___!~dd@5.195.225.158 JOIN #lef
-        >> :hostsailor.ro.quakenet.org 353 tesfa___ = #lef :@tesfa___
-        >> :hostsailor.ro.quakenet.org 366 tesfa___ #lef :End of /NAMES list.
-    */
    this->sendMsgToClient(creator->getFd(), RPL_JOIN(creator->getNickName(), creator->getUserName(), creator->getIpAddr(), chanName));
-   command->names(creator, this);
-//    std::cout << getCurrentTime() << std::endl;
-//    std::string ss = static_cast<std::string>(getCurrentTime());
-//    serverInstance->sendMsgToClient(creator->getFd(), RPL_TIME(serverInstance->getHostname(), creator->getNickName(), newChan->getName(), std::string(getCurrentTime())));
-
+   command->names(creator, this); // send names
 }
 
 Channel   *Server::getChanByName(std::string chanName) {
@@ -273,7 +251,6 @@ Channel   *Server::getChanByName(std::string chanName) {
     // (channel seize to exist if there is no user)
     if (chan->getNumOfChanMembers() == 0) {
         serverInstance->deleteAChannel(chan);
-        std::cout << "Channel deleted coz no one is here\n";
     }
  }
 
@@ -282,7 +259,7 @@ void    Server::deleteAChannel(Channel *chan) {
     delete chan; // destruct it
 }
 
-void       Server::sendMessageToChan(Channel *chan, std::string sender, std::string msg, bool chanNotice) {
+void       Server::forwardMsgToChan(Channel *chan, std::string sender, std::string msg, bool chanNotice) {
     // we have nick-fd table
     chan->sendToAllMembers(this, sender, msg, chanNotice);
 }
@@ -316,121 +293,62 @@ void    Server::channelRelatedOperations(Client* client, Command *command) {
     =!> PRIVMSG
     
  */
-void Server::doStuff(Client* client, Command *command) {
-    if (command->cmd == "PING") {
-        this->sendMsgToClient(client->getFd(), PONG(this->getHostname()));
-        return ;
-    }
-    // if (command->cmd == "time") {
-    //     if (command->params.size() != 0)
-    //         return ;
-    //     std::cout << "-->AAAAAAAAA Full-CMD: {" << command->raw_cmd << "} <--\n";
-    //     std::string timeString = timeToString(getCurrentTime());
-    //     std::ostringstream message;
-    //     message << ":" << serverName << " 329 <nickname> " << channel << " " << creationTime << " :" << timeString << "\r\n";
-    //     return ;
-    // }
-    if (command->cmd == "PRIVMSG") {
-        command->privmsg(client, this);
-        return ;
-    }
-    if (command->cmd == "QUIT") {
-        command->quit(client, this);
-        return ;
-    }
+bool Server::doStuff(Client* client, Command *command) {
+    if (command->cmd == "PING")
+        return (this->sendMsgToClient(client->getFd(), PONG(this->getHostname())), true);
+    if (command->cmd == "PRIVMSG")
+        return (command->privmsg(client, this), true);
+    if (command->cmd == "QUIT")
+        return (command->quit(client, this), true);
     /* Channel and channel related features --- big job */
     std::cout << "FULL Cmd: " << command->raw_cmd << std::endl;
-    if (command->cmd == "JOIN" || command->cmd == "KICK" || command->cmd == "NAMES" || command->cmd == "MODE" || command->cmd == "PART" || command->cmd == "INVITE" || command->cmd == "TOPIC") {
-        this->channelRelatedOperations(client, command);
-        return ;
-    }
-    /* Not mandatory Commands */
-    if (command->cmd == "WHOIS") {
-        Client *whoClient = this->getClientByNick(command->params[0]);
-        if (whoClient == NULL) {
-            return ;
-        }
-        // [euroserv.fr.quakenet.org 311 tesfa_ tesfa ~dd 5.195.225.158 * :H H]
-        // [<hostname> 311 <requesterNick> <nick> <username> <ipadd> * :<real name>]
-        std::string rpl_who = ":"+this->getHostname()+" 311 "+client->getNickName()+" "+whoClient->getNickName()+" "+whoClient->getUserName()+" "+whoClient->getIpAddr()+" * :"+whoClient->getRealName()+"\r\n";
-        this->sendMsgToClient(client->getFd(), rpl_who);
-    }
-    if (command->cmd == "kill") {
-        std::string potencialServerOp = "@%" + client->getNickName();
-        if (*(this->_serverOperators.lower_bound(potencialServerOp)) != potencialServerOp)
-            this->sendMsgToClient(client->getFd(), ERR_NOPRIVILEGES(this->getHostname(), client->getNickName()));
-        else {
-            // check if the killer is an ircOp.
-            std::string ircOp = isClientServerOp(client->getNickName());
-            if (ircOp == "") {
-                this->sendMsgToClient(client->getFd(), ERR_NOSUCHNICK(this->getHostname(), client->getNickName(), command->params[2]));
-                std::cout << "you are not server OP\n";
-                return ;
-            }
-            // check if the victim is actually in the server
-            int victimFd = isClientAvailable(command->params[0]);
-            if (victimFd == 0) {
-                std::cout << "victim is not in server to be killed\n";
-                return ;
-            }
-            // remove client
-            Client *victim = this->getClientByNick(command->params[0]);
-            std::string killMsg = std::string("KILLED YA ......\r\n");
-            this->removeClient(victim, killMsg);
-            std::cout << killMsg << std::endl;
-            /* FOR NOW HE CAN ALSO KILL HIMSELF */
-        }
-    }
+    if (command->cmd == "JOIN" || command->cmd == "KICK" || command->cmd == "NAMES" || command->cmd == "MODE" || command->cmd == "PART" || command->cmd == "INVITE" || command->cmd == "TOPIC")
+        return (this->channelRelatedOperations(client, command), true);
+    return true;
 }
 
 
-void Server::recieveMsg(int clientFd) {
+Client *Server::recieveMsg(int clientFd) {
     char buffer[1024];
     int buffer_size = sizeof(buffer);
 
     Client *client = this->getClient(clientFd);
     if (client == NULL)
-        return ;
+        return NULL;
     std::memset(buffer, 0, buffer_size);
     int bytes_received = recv(clientFd, buffer, buffer_size, 0);
     if (bytes_received == 0) {
         this->removeClient(client, Conn_closed(this->getHostname()));
-        return ;
+        return (NULL);
     }
-    if (bytes_received < 0) {
-        std::cout << "error recieving: " << bytes_received << std::endl;
-        return ;
-    }
+    if (bytes_received < 0)
+        return NULL;
     buffer[bytes_received] = '\0'; // Null-terminate the received data coz recv() doesnt
     client->getRecivedBuffer() += std::string(buffer);
-    if (std::strchr(client->getRecivedBuffer().c_str(), '\n') == NULL) {
-        return ;
-    }
+    if (std::strchr(client->getRecivedBuffer().c_str(), '\n') == NULL)
+        return NULL;
     if (client->getRecivedBuffer().size() == 0)
+        return NULL;
+    return client;
+}
+
+void Server::executeMsg(int clientFd) {
+    Client *client = this->recieveMsg(clientFd);
+    if (client == NULL)
         return ;
-    try
-    {
-        std::vector<std::string> arr_of_cmds = split(client->getRecivedBuffer(), '\0');
-        client->getRecivedBuffer() = ""; // empty the buffer;
-        std::vector<std::string>::iterator it = arr_of_cmds.begin();
-        for (; it != arr_of_cmds.end(); ++it) {
-            Command *command = new Command((*it));
-            if (command->params.empty() && command->cmd != "USER" && command->cmd != "time")
-            {
-                this->sendMsgToClient(client->getFd(), ERR_NEEDMOREPARAMS(this->getHostname(), command->cmd));
-                return ;
-            }
-            // we register the client first, (basicly assign nickname, username and other identifiers to the new connection so it can interact with other users)
-            if (client->IsClientConnected() == false) {
-                this->registerClient(client, command);
-            }
-            else // now he can do anything
-                this->doStuff(client, command);
-            delete command; // we dont need the command anymore
+    std::vector<std::string> arr_of_cmds = split(client->getRecivedBuffer(), '\0');
+    client->getRecivedBuffer() = ""; // empty the buffer - coz its splited and changed to CMD;
+    for (std::vector<std::string>::iterator it = arr_of_cmds.begin(); it != arr_of_cmds.end(); ++it) {
+        Command *command = new Command((*it));
+        if (command->params.empty() && command->cmd != "USER") {
+            this->sendMsgToClient(client->getFd(), ERR_NEEDMOREPARAMS(this->getHostname(), command->cmd));
+            return ;
         }
-    }
-    catch(const std::exception& e)
-    {
-        std::cerr << e.what() << '\n';
+        // we register the client first, (basicly assign nickname, username and other identifiers to the new connection so it can interact with other users)
+        if (client->IsClientConnected() == false)
+            this->registerClient(client, command);
+        else // now he can do anything
+            this->doStuff(client, command);
+        delete command; // we dont need the command anymore
     }
 }

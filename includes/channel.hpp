@@ -81,7 +81,6 @@ class Channel {
         std::string             getName(void) const;
         void                    addMember(std::string clientNick);
         std::string             getChanKey(void) const;
-        std::string             isClientChanOp(std::string clientNick) const;
         std::string             isClientaMember(std::string clientNick) const;
         void                    deleteAMember(std::string victim);
         void                    insertToMemberFdMap(std::string nick, int fd);
