@@ -50,11 +50,14 @@ clean:
 # Rule for cleaning object files, archives and executable:
 fclean: clean
 	@echo "Removing Executable"
-	$(RM) $(NAME)
+	$(RM) $(NAME) bigbrother
 
 # Rule for re-making the executable:
 re: fclean all
 	@echo "Rebuilding Executable"
 
+bot:
+	cd bot/ && ${CXX} ${FLAGS} bot.cpp main.cpp utils.cpp -o ../bigbrother && cd - 
+
 # Phony targets:
-.PHONY: re fclean all clean
+.PHONY: re fclean all clean bot
