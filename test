@@ -1,0 +1,14 @@
+Memory issues:
+
+Pre-requisite: All tests are done by valgrind --leak-check=full
+
+Issue 1: Server closed when clients are still connected or initiated a communication.
+
+Reproduce the bug:
+1. Start the server
+2. Connect from multiple clients (2....n)
+3. Exit from the server with ctrl c
+
+
+
+Issue 2: 

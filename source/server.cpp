@@ -44,6 +44,7 @@ Server::~Server() {
             t_it->second = NULL; // Avoid dangling pointer
         }
     }
+    _clients.clear();
     close(this->_serverSocketFd);
     std::cout << "Server shut down!\n";
 }
