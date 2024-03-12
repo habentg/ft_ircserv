@@ -54,7 +54,6 @@ fclean: clean
 
 # Rule for re-making the executable:
 re: fclean all
-	@echo "Rebuilding Executable"
 
 bot:
 	cd bot/ && ${CXX} ${FLAGS} bot.cpp main.cpp utils.cpp -o ../bigbrother && cd - 

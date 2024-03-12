@@ -268,8 +268,22 @@ void       Server::forwardMsgToChan(Channel *chan, std::string sender, std::stri
 /*                                                  DO STUFF                                                          */
 /* ================================================================================================================== */
 
-void    Server::channelRelatedOperations(Client* client, Command *command) {
-    if (command->cmd == "JOIN")
+/* Connected Client can DO these stuff basicly:
+    =!> PONG
+        - servers response when a client checks for livelyness of the server (no bigie)
+    =!> PRIVMSG
+        - clients can message privately between one another or send messag to a channel thier in
+    =!> PRIVMSG
+    
+ */
+void Server::doStuff(Client* client, Command *command) {
+    if (command->cmd == "PING")
+        this->sendMsgToClient(client->getFd(), PONG(this->getHostname()));
+    else if (command->cmd == "PRIVMSG")
+        command->privmsg(client, this);
+    else if (command->cmd == "QUIT")
+        command->quit(client, this);
+    else if (command->cmd == "JOIN")
         command->join(client, this);
     else if (command->cmd == "KICK")
         command->kick(client, this);
@@ -282,29 +296,7 @@ void    Server::channelRelatedOperations(Client* client, Command *command) {
     else if (command->cmd == "INVITE")
         command->invite(client, this); 
     else if (command->cmd == "TOPIC")
-        command->topic(client, this); 
-}
-
-/* Connected Client can DO these stuff basicly:
-    =!> PONG
-        - servers response when a client checks for livelyness of the server (no bigie)
-    =!> PRIVMSG
-        - clients can message privately between one another or send messag to a channel thier in
-    =!> PRIVMSG
-    
- */
-bool Server::doStuff(Client* client, Command *command) {
-    if (command->cmd == "PING")
-        return (this->sendMsgToClient(client->getFd(), PONG(this->getHostname())), true);
-    if (command->cmd == "PRIVMSG")
-        return (command->privmsg(client, this), true);
-    if (command->cmd == "QUIT")
-        return (command->quit(client, this), true);
-    /* Channel and channel related features --- big job */
-    std::cout << "FULL Cmd: " << command->raw_cmd << std::endl;
-    if (command->cmd == "JOIN" || command->cmd == "KICK" || command->cmd == "NAMES" || command->cmd == "MODE" || command->cmd == "PART" || command->cmd == "INVITE" || command->cmd == "TOPIC")
-        return (this->channelRelatedOperations(client, command), true);
-    return true;
+        command->topic(client, this);
 }
 
 

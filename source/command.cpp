@@ -72,14 +72,12 @@ size_t validNickName(std::vector<std::string> nick_params, int clientFd, Server*
     }
     size_t  valid_index = 0;
     /* Use find first instead of all the '||'s */
-    if ((valid_index = nick.find(',')) != std::string::npos || (valid_index = nick.find('?')) != std::string::npos || \
-        (valid_index = nick.find('@')) != std::string::npos || (valid_index = nick.find('!')) != std::string::npos || \
-        (valid_index = nick.find('*')) != std::string::npos || (valid_index = nick.find('.')) != std::string::npos || \
-        (valid_index = nick.find('$')) != std::string::npos) {
-            if (valid_index == 0) {
-                serverInstance->sendMsgToClient(clientFd, ERR_ERRONEUSNICKNAME(serverInstance->getHostname()));
-                return 0;
-            }
+    std::string check = std::string(",@*$?!.");
+    if ((valid_index = nick.find_first_of(check)) != std::string::npos) {
+        if (valid_index == 0) {
+            serverInstance->sendMsgToClient(clientFd, ERR_ERRONEUSNICKNAME(serverInstance->getHostname()));
+            return 0;
+        }
         return valid_index;
     }
     return -1;

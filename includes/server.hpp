@@ -60,18 +60,14 @@ class Server {
         int                         isClientAvailable(std::string nick) const;
         void                        sendMsgToClient(int clientFd, std::string msg);
         void                        sendMsgToAllClients(std::string msg);
-        bool                        doStuff(Client* client, Command *command);
+        void                        doStuff(Client* client, Command *command);
         void                        removeClient(Client *senderClient, std::string quitMsg);
         std::string                 isClientServerOp(std::string nick);
-
-        /* channel related methods */ // because its the duity of the server to do operation on the channel when a user requests with the key(chanName)
-        void    channelRelatedOperations(Client* client, Command *command);
-        
-        void      createChannel(std::string chanName, Client *creator, Command *command); // gonna call the constructor of the channel class
-        Channel   *getChanByName(std::string chanName);
-        void      deleteAChannel(Channel *chan);
-        void      removeClientFromChan(std::string victimNick, Channel *chan);
-        void       forwardMsgToChan(Channel *chan, std::string sender, std::string msg, bool chanNotice);
+        void                        createChannel(std::string chanName, Client *creator, Command *command); // gonna call the constructor of the channel class
+        Channel                     *getChanByName(std::string chanName);
+        void                        deleteAChannel(Channel *chan);
+        void                        removeClientFromChan(std::string victimNick, Channel *chan);
+        void                        forwardMsgToChan(Channel *chan, std::string sender, std::string msg, bool chanNotice);
         
 };
 
