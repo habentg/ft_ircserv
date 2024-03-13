@@ -12,3 +12,31 @@ Reproduce the bug:
 
 
 Issue 2: 
+- NICK message is used to give user a nickname or change the previous
+   one.
+
+-  If a NICK message arrives at a server which already knows about an
+   identical nickname for another client, a nickname collision occurs.
+   As a result of a nickname collision, all instances of the nickname
+   are removed from the server's database, and a KILL command is issued
+   to remove the nickname from all other server's database. If the NICK
+   message causing the collision was a nickname change, then the
+   original (old) nick must be removed as well.
+
+	4.6.1 Kill message
+		KILL is used
+		by servers when they encounter a duplicate entry in the list of valid
+		nicknames and is used to remove both entries.
+
+
+
+
+Issue 3:
+- /join #bar,#foo
+
+	I don't know if this is supposed to be handled but ours is not handling it.
+
+Issue 4:
+-  Once a user has joined a channel, they receive notice about all
+   commands their server receives which affect the channel.  This
+   includes MODE, KICK, PART, QUIT and of course PRIVMSG/NOTICE.
