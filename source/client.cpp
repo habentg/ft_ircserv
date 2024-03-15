@@ -21,7 +21,6 @@ Client::Client(int clientFd, struct sockaddr *clientInfo){
         this->_REALNAME = "42Real Name";
         this->_ipaddr = inet_ntoa(((struct sockaddr_in *)clientInfo)->sin_addr);
         this->_port = ntohs(((struct sockaddr_in *)clientInfo)->sin_port);
-        this->_clientInfo = clientInfo;
         this->_wrongPassCount = 0;
         this->_recievedBuff = "";
 }
@@ -85,10 +84,6 @@ std::string&  Client::getRecivedBuffer() {
 
 void Client::setWrongPassCount(unsigned int value) {
     this->_wrongPassCount = value;
-}
-
-void  Client::addChannelNameToCollection(std::string chanName) {
-    this->_channelsJoined.insert(chanName);
 }
 
 std::set<std::string>& Client::getChannelsJoined(void) {

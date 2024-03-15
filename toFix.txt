@@ -1,0 +1,11 @@
+1. trying to join a channell you are already in should say "already in"!
+2. if he is authenticated but tried to provide any other command than NICK, say "nick needed"!
+PASS passwd
+NICK d
+USER a
+
+JOIN #1
+JOIN #2
+JOIN #3
+JOIN #4
+JOIN #5

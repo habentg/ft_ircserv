@@ -65,7 +65,6 @@ class Channel {
     private:
         std::string                     _chanName;
         std::string                     _chanKey;
-        std::string                     _creator;
         std::set<std::string>           _members;
         std::map<std::string, int>      _member_fd_map; // nickname-fd map, to optimize client look up for sending
         std::set<std::string>           _chanOps;
@@ -73,13 +72,13 @@ class Channel {
         unsigned int                    _chanLimit;
         std::set<std::string>           _invitedUser;
         std::string                     _chanTopic;
+        bool                            _hasTopic;
     public:
-        Channel(std::string chanName, Client *creator);
+        Channel(std::string chanName);
         ~Channel();
         // members
         size_t                  getNumOfChanMembers(void) const;
         std::string             getName(void) const;
-        void                    addMember(std::string clientNick);
         std::string             getChanKey(void) const;
         std::string             isClientaMember(std::string clientNick) const;
         void                    deleteAMember(std::string victim);
@@ -95,5 +94,6 @@ class Channel {
         std::set<std::string>&  getAllInvitees();
         std::string             getTopic(void) const;
         void                    setTopic(std::string  newTopic);
+        bool&                   getHasTopic();
 };
 #endif // !CHANNEL_HPP

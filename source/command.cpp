@@ -146,15 +146,11 @@ void Command::privmsg(Client *senderClient, Server *serverInstance) {
             serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), senderClient->getNickName(), this->params[0]));
             return ;
         }
-        std::string sender = chan->isClientaMember(senderClient->getNickName());
-        if (sender == "") {
-            /* or we can send "404": cant send to channel, the below format
-                >> :stockholm.se.quakenet.org 404 tesfa_ #habex42ad :Cannot send to channel
-            */
+        if (senderClient->getChannelsJoined().find(chan->getName()) == senderClient->getChannelsJoined().end()) {
             serverInstance->sendMsgToClient(senderClient->getFd(), ERR_YouIsNotInCHANNEL(serverInstance->getHostname(), senderClient->getNickName(), chan->getName()));
             return ;
         }
-        serverInstance->forwardMsgToChan(chan, sender, msgPriv, false);
+        serverInstance->forwardMsgToChan(chan, senderClient->getNickName(), msgPriv, false);
         return ;
     }
     int recieverFd = serverInstance->isClientAvailable(this->params[0]);
@@ -178,28 +174,24 @@ void Command::privmsg(Client *senderClient, Server *serverInstance) {
     >> :tngnet.nl.quakenet.org 353 habuye_ = #42chn :habuye_ habuye @habex_
     >> :tngnet.nl.quakenet.org 366 habuye_ #42chn :End of /NAMES list.
 */
-
-void    Command::join(Client *client, Server *serverInstance) {
-    if (this->params[0][0] != '#' || this->params[0].find(',') != std::string::npos || this->params[0].find(7) != std::string::npos) {
+void    Command::join_util(Client *client, Server *serverInstance, std::string chanName) {
+    if (chanName[0] != '#' || chanName.find(7) != std::string::npos) {
         // incase of a channel name having a space, we can reconstruct the "name" but I am lazy now!
         //{:adrift.sg.quakenet.org 403 tesfa #fhfjk :No such channel}
         serverInstance->sendMsgToClient(client->getFd(), ERR_BADCHANMASK(serverInstance->getHostname(), client->getNickName()));
         return ;
     }
-    std::string validChanName = this->params[0];
-    // if that channel doesnt exist:
-        // create channel, and add dude as an OP
-    Channel *chann = serverInstance->getChanByName(validChanName);
+    Channel *chann = serverInstance->getChanByName(chanName);
     if (chann == NULL)
     {
-        serverInstance->createChannel(validChanName, client, this);
+        serverInstance->createChannel(chanName, client, this);
         return ;
     }
     // we check if channel is an invite only:
-    if (chann->isModeOn('i') || (chann->getAllInvitees().find(client->getNickName()) != chann->getAllInvitees().end())) {
+    if (chann->isModeOn('i') && (chann->getAllInvitees().find(client->getNickName()) != chann->getAllInvitees().end())) {
         // check if the user has an invitation
-        std::set<std::string>::iterator it = chann->getAllInvitees().lower_bound(client->getNickName());
-        if (it == chann->getAllInvitees().end() || (*it) != client->getNickName()) {
+        std::set<std::string>::iterator it = chann->getAllInvitees().find(client->getNickName());
+        if (it == chann->getAllInvitees().end()) {
             serverInstance->sendMsgToClient(client->getFd(), ERR_INVITEONLYCHAN(serverInstance->getHostname(), client->getNickName(), chann->getName()));
             return ;
         }
@@ -223,17 +215,27 @@ void    Command::join(Client *client, Server *serverInstance) {
         }
         // at this point he got the correct key and channel user limmit hasnt been reached yet
     }
-    chann->addMember(client->getNickName());
+    if (chann->getAllMembersNick().find(client->getNickName()) != chann->getAllMembersNick().end())
+        return ;
+    chann->getAllMembersNick().insert(client->getNickName());
     chann->insertToMemberFdMap(client->getNickName(), client->getFd());
-    client->addChannelNameToCollection(chann->getName());
+    client->getChannelsJoined().insert(chann->getName());
     std::string letThemKnow = RPL_JOIN(client->getNickName(), client->getUserName(), client->getIpAddr(), chann->getName());
     serverInstance->forwardMsgToChan(chann, client->getNickName(), letThemKnow, true);
-    this->names(client, serverInstance);
-    /* 18:40 -!- Channel #42chan created Fri Mar  8 18:40:38 2024 */ // DO THIS
-    /* >> :hostsailor.ro.quakenet.org 329 tom_ #sdff 1709910616 */
-    // serverInstance->sendMsgToClient(client->getFd(), RPL_TIME(serverInstance->getHostname(), client->getNickName(), chann->getName(), std::string(getCurrentTime())));
+    // RPL_topic
+    if (chann->getHasTopic() == true)
+        serverInstance->sendMsgToClient(client->getFd(), RPL_TOPIC(serverInstance->getHostname(), chann->getName(), chann->getTopic()));
+    // RPL_NAMES
+    serverInstance->namesCmd(client, chanName);
     if (chann->isModeOn('i'))
         chann->getAllInvitees().erase(client->getNickName()); // invitation used and expired!!!
+}
+
+void    Command::join(Client *client, Server *serverInstance) {
+    std::vector<std::string> channels = split(this->params[0], ',');
+    for (std::vector<std::string>::iterator it = channels.begin(); it != channels.end(); ++it)
+        this->join_util(client, serverInstance, *it);
+    
 }
 
 /*
@@ -286,7 +288,7 @@ void    Command::kick(Client *senderClient, Server *serverInstance) {
         >> :habex!~hab@5.195.225.158 KICK #42chan tesfa :habex
      */
     serverInstance->forwardMsgToChan(chan, chanOp, kickNotice, true);
-    serverInstance->removeClientFromChan(victim, chan);    
+    serverInstance->removeClientFromChan(serverInstance->getClientByNick(victim), chan); 
 }
 
 
@@ -295,32 +297,33 @@ void    Command::quit(Client *senderClient, Server *serverInstance) {
     serverInstance->removeClient(senderClient, quitMsg);
 }
 
-void    Command::partLeavChan(Client *senderClient, Server *serverInstance) {
+void    Command::partLeavChan(Client *client, Server *serverInstance) {
     /* :htg_!~dd@5.195.225.158 PART #gele */
     Channel *chan = serverInstance->getChanByName(this->params[0]);
     if (chan == NULL)
         return ;
+    if (client->getChannelsJoined().find(chan->getName()) == client->getChannelsJoined().end()) {
+        serverInstance->sendMsgToClient(client->getFd(), ERR_YouIsNotInCHANNEL(serverInstance->getHostname(), client->getNickName(), chan->getName()));
+        return ;
+    }
     std::string reason = std::string("Default Leaving Reason");
     if (this->raw_cmd.find(':') != std::string::npos)
         reason = this->raw_cmd.substr(this->raw_cmd.find(':') + 1);
-    std::string partMsg = RPL_PART(senderClient->getNickName(), senderClient->getUserName(), senderClient->getIpAddr(), chan->getName(), reason);
-    serverInstance->forwardMsgToChan(chan, senderClient->getNickName(), partMsg, true);
-    serverInstance->removeClientFromChan(senderClient->getNickName(), chan);
-    return ;
+    std::string partMsg = RPL_PART(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), reason);
+    serverInstance->forwardMsgToChan(chan, client->getNickName(), partMsg, true);
+    serverInstance->removeClientFromChan(client, chan);
 }
 
-void Command::names(Client *client, Server *serverInstance) {
-    // Find the channel object based on the channel name
-    std::string channelName = this->params[0];
-    Channel *channel = serverInstance->getChanByName(channelName);
+void    Server::namesCmd(Client *client, std::string chanName) {
+    Channel *channel = this->getChanByName(chanName);
     if (channel == NULL) { // If channel doesn't exist, send error message to client
-        serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), client->getNickName(), channelName));
+        this->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(this->getHostname(), client->getNickName(), chanName));
         return;
     }
     // Get the list of nicknames
     // the Op's first
     std::set<std::string> opNicks = channel->getAllChanOps();
-    std::string namesReply = RPL_NAMES(serverInstance->getHostname(), client->getNickName(), channelName);
+    std::string namesReply = RPL_NAMES(this->getHostname(), client->getNickName(), chanName);
     std::set<std::string>::iterator it = opNicks.begin();
     // Construct the NAMES reply message
     for (; it != opNicks.end(); ++it) {
@@ -330,17 +333,47 @@ void Command::names(Client *client, Server *serverInstance) {
     std::set<std::string> nicknames = channel->getAllMembersNick(); // I USED reference (des kbleka ile tomas)
     std::set<std::string>::iterator it_n = nicknames.begin();
     for (; it_n != nicknames.end(); ++it_n) {
-        if ((*it_n)[0] == '@') {
+        if (channel->getAllChanOps().find("@" + *it_n) == channel->getAllChanOps().end())
             namesReply += (*it_n) + " ";
-        }
     }
     namesReply += "\r\n";
     // Send the NAMES reply message to the client
-    serverInstance->sendMsgToClient(client->getFd(), namesReply);
-
-    // Send the /END of NAMES reply message
-    serverInstance->sendMsgToClient(client->getFd(), RPL_ENDOFNAMES(serverInstance->getHostname(), client->getNickName(), channelName));
+    this->sendMsgToClient(client->getFd(), namesReply);
+    this->sendMsgToClient(client->getFd(), RPL_ENDOFNAMES(this->getHostname(), client->getNickName(), chanName));
 }
+
+// void Command::names(Client *client, Server *serverInstance) {
+//     // Find the channel object based on the channel name
+//     std::string channelName = this->params[0];
+//     Channel *channel = serverInstance->getChanByName(channelName);
+//     if (channel == NULL) { // If channel doesn't exist, send error message to client
+//         serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), client->getNickName(), channelName));
+//         return;
+//     }
+//     // Get the list of nicknames
+//     // the Op's first
+//     std::set<std::string> opNicks = channel->getAllChanOps();
+//     std::string namesReply = RPL_NAMES(serverInstance->getHostname(), client->getNickName(), channelName);
+//     std::set<std::string>::iterator it = opNicks.begin();
+//     // Construct the NAMES reply message
+//     for (; it != opNicks.end(); ++it) {
+//         namesReply += (*it) + " ";
+//     }
+//     // then the normal members
+//     std::set<std::string> nicknames = channel->getAllMembersNick(); // I USED reference (des kbleka ile tomas)
+//     std::set<std::string>::iterator it_n = nicknames.begin();
+//     for (; it_n != nicknames.end(); ++it_n) {
+//         if ((*it_n)[0] == '@') {
+//             namesReply += (*it_n) + " ";
+//         }
+//     }
+//     namesReply += "\r\n";
+//     // Send the NAMES reply message to the client
+//     serverInstance->sendMsgToClient(client->getFd(), namesReply);
+
+//     // Send the /END of NAMES reply message
+//     serverInstance->sendMsgToClient(client->getFd(), RPL_ENDOFNAMES(serverInstance->getHostname(), client->getNickName(), channelName));
+// }
 
 /* 
     Command: INVITE
@@ -380,7 +413,7 @@ void    Command::invite(Client *client, Server *serverInstance) {
         serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHNICK(serverInstance->getHostname(), client->getNickName(), this->params[0]));
         return ;
     }
-    if (chan->isClientaMember(invitee->getNickName()) != "") {
+    if (invitee->getChannelsJoined().find(chan->getName()) == invitee->getChannelsJoined().end()) {
         serverInstance->sendMsgToClient(client->getFd(), ERR_USERONCHANNEL(serverInstance->getHostname(), client->getNickName(), invitee->getNickName(), chan->getName()));
         return ;
     }
@@ -420,10 +453,10 @@ void    Command::topic(Client *client, Server *serverInstance) {
     // all members can see topic of the channel
     //but to change it you have to be an OP
     if (this->params.size() == 1) {
-        // if (chan->isModeOn('t') == true) {
-        //     serverInstance->sendMsgToClient(client->getFd(), ERR_CHANOPRIVSNEEDED(serverInstance->getHostname(), client->getNickName(), chan->getName()));
-        //     return ;
-        // }
+        if (chan->getHasTopic() == false) {
+            serverInstance->sendMsgToClient(client->getFd(), RPL_TOPICNOTSET(serverInstance->getHostname(), client->getNickName(), chan->getName()));
+            return ;
+        }
         serverInstance->sendMsgToClient(client->getFd(), RPL_TOPIC(serverInstance->getHostname(), chan->getName(), chan->getTopic()));
         std::cout << "who set it and the date topic set will be sent as wll\n";
         return ;
@@ -436,6 +469,7 @@ void    Command::topic(Client *client, Server *serverInstance) {
     std::string newTopic = this->raw_cmd.substr(this->raw_cmd.find(':') + 1);
     std::cout << "NEW topic : " << newTopic << std::endl;
     chan->setTopic(newTopic);
+    chan->getHasTopic() = true;
     serverInstance->forwardMsgToChan(chan, client->getNickName(), TOPIC_CHANGE(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), chan->getTopic()), true);
     std::cout << "topic changed\n";
 }

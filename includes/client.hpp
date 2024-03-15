@@ -21,19 +21,18 @@ class Channel;
 class Client {
     private:
         
-        int         _clientFd;
-        bool        _isConnected;
-        bool        _isAuthenticated;
-        std::string _NICK;
-        std::string _USERNAME;
-        std::string _REALNAME;
-        char*       _ipaddr;
-        uint32_t    _port;
-        unsigned int _wrongPassCount;
-        std::set<std::string> _channelsJoined;
-        struct sockaddr* _clientInfo; // incase I need more info about the client
-        std::string     _recievedBuff;
-        Client(void);
+        int                         _clientFd;
+        bool                        _isConnected;
+        bool                        _isAuthenticated;
+        std::string                 _NICK;
+        std::string                 _USERNAME;
+        std::string                 _REALNAME;
+        char*                       _ipaddr;
+        uint32_t                    _port;
+        unsigned int                _wrongPassCount;
+        std::set<std::string>    _channelsJoined;
+        std::string                 _recievedBuff;
+        Client(void);   
     public:
         Client(int clientFd, struct sockaddr *clientInfo);
         ~Client(void);
@@ -61,7 +60,6 @@ class Client {
         std::string&           getRecivedBuffer();
         unsigned int    getWrongPassCount(void) const;
         void            setWrongPassCount(unsigned int value);
-        void            addChannelNameToCollection(std::string chanName);
 };
 
 #endif // !CLIENT_HPP

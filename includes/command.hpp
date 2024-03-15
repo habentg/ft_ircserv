@@ -30,6 +30,7 @@ class Command {
         void    user(Client *client, Server* serverInstance);
         void    privmsg(Client *senderClient, Server *serverInstance);
         void    join(Client *senderClient, Server *serverInstance);
+        void    join_util(Client *client, Server *serverInstance, std::string chanName);
         void    kick(Client *senderClient, Server *serverInstance);
         void    quit(Client *senderClient, Server *serverInstance);
         void    partLeavChan(Client *senderClient, Server *serverInstance);

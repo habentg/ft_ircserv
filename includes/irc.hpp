@@ -64,7 +64,7 @@
 
 /* Server to Client Error Responses */
 #define ERR_NEEDMOREPARAMS(hostname, cmd)                           std::string(":"+hostname+" 464 "+cmd+" :Not enough parameters\r\n")
-#define ERR_ALREADYREGISTERED(hostname)                             std::string(":"+hostname+" 462 :You are already registered\r\n")
+#define ERR_ALREADYREGISTERED(hostname)                             std::string(":"+hostname+" 462 :You are already authenticated brodi\r\n")
 #define ERR_PASSWDMISMATCH(hostname)                                std::string(":"+hostname+" 464 :Password incorrect\r\n")
 #define ERR_NICKNAMEINUSE(hostname, nickname)                       std::string(":"+hostname+" 433 * "+nickname +" :Nickname already in use\r\n")
 #define ERR_ERRONEUSNICKNAME(hostname)                              std::string(":"+hostname+" 432 :you have characters in your nickname that are not supported in our server\r\n")
@@ -114,7 +114,8 @@
 #define RPL_OPERATORGIVEREVOKE(op_nick, op_username, op_ip, chanName, optype, newopnick)  std::string(userHostMask(op_nick, op_username, op_ip)+" MODE "+chanName+" "+optype+" "+newopnick+"\r\n")
 #define RPL_YouIsInvited(op_nick, op_username, op_ip, chanName, inviteeNick)                std::string(userHostMask(op_nick, op_username, op_ip)+" INVITE "+" "+inviteeNick+" "+chanName+" "+"\r\n")
 #define RPL_TIME(hostname, nick, chanName, time)                                            std::string(":"+hostname+" 329 "+nick+" "+chanName+" "+time+"\r\n")
-#define RPL_TOPIC(hostname, chanName, msg)                                                  std::string(":"+hostname+" "+chanName+": "+msg+"\r\n")
+#define RPL_TOPIC(hostname, chanName, msg)                                                  std::string(":"+hostname+" 332 "+chanName+": "+msg+"\r\n")
+#define RPL_TOPICNOTSET(hostname, chanName, msg)                                                  std::string(":"+hostname+" 331 "+chanName+": topic is not set\r\n")
 #define TOPIC_CHANGE(nick, username, ip, chanName, topicMsg)                   std::string(userHostMask(nick, username, ip)+" TOPIC "+chanName+" :"+topicMsg+"\r\n")
 
 /* Error responses */

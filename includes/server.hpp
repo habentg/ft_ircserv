@@ -29,7 +29,6 @@ class Server {
         std::map<int, Client *>             _clients; // our users
         std::map<std::string, int>          _nick_fd_map; // nickname-fd map, to optimize client look up for sending
         std::map<std::string, Channel *>    _channels; // all the channels in this server (name-channel format)
-        std::set<std::string>               _serverOperators;
         static  Server*                     serverInstance; // pointer to our server instance
 
         // constructors
@@ -66,9 +65,9 @@ class Server {
         void                        createChannel(std::string chanName, Client *creator, Command *command); // gonna call the constructor of the channel class
         Channel                     *getChanByName(std::string chanName);
         void                        deleteAChannel(Channel *chan);
-        void                        removeClientFromChan(std::string victimNick, Channel *chan);
+        void                        removeClientFromChan(Client *victim, Channel *chan);
         void                        forwardMsgToChan(Channel *chan, std::string sender, std::string msg, bool chanNotice);
-        
+        void                        namesCmd(Client *client, std::string chanName);
 };
 
 #endif //!SERVER_HPP

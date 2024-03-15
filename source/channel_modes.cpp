@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 09:45:02 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/03/11 19:36:00 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/16 02:21:14 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,8 +30,7 @@ bool Command::mode(Client *client, Server* serverInstance) {
         Channel *chan = serverInstance->getChanByName(this->params[0]);
         if (chan == NULL)
             return (serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), client->getNickName(), this->params[0])), false);
-        std::string sender = chan->isClientaMember(client->getNickName());
-        if (sender == "")
+        if (client->getChannelsJoined().find(chan->getName()) == client->getChannelsJoined().end())
             return (serverInstance->sendMsgToClient(client->getFd(), ERR_YouIsNotInCHANNEL(serverInstance->getHostname(), client->getNickName(), chan->getName())), false);
         if (this->params.size() == 1) {
             std::string modesOn = "+";

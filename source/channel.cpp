@@ -12,12 +12,12 @@
 
 #include "../includes/irc.hpp"
 
-Channel::Channel(std::string chanName, Client *creator) {
+Channel::Channel(std::string chanName) {
     this->_chanName = chanName;
     this->_chanKey = "";
-    this->_creator = creator->getNickName();
     this->_chanLimit = 0;
     this->_chanTopic = "";
+    this->_hasTopic = false;
 }
 
 Channel::~Channel(void) {
@@ -31,10 +31,6 @@ size_t Channel::getNumOfChanMembers(void) const {
     return this->_members.size();
 }
 
-void Channel::addMember(std::string clientNick) {
-    this->_members.insert(clientNick);
-}
-
 std::string     Channel::getChanKey(void) const {
     return (this->_chanKey);
 }
@@ -44,11 +40,11 @@ void            Channel::setChanKey(std::string newKey) {
 
 std::string    Channel::isClientaMember(std::string clientNick) const {
     std::string potentialOp = "@" + clientNick;
-    std::set<std::string>::iterator it = this->_chanOps.lower_bound(potentialOp);
-    if (it != this->_chanOps.end() && (*it) == potentialOp)
+    std::set<std::string>::iterator it = this->_chanOps.find(potentialOp);
+    if (it != this->_chanOps.end())
         return potentialOp;
-    std::set<std::string>::iterator m_it = this->_members.lower_bound(clientNick);
-    if (m_it != this->_members.end() && (*m_it) == clientNick)
+    std::set<std::string>::iterator m_it = this->_members.find(clientNick);
+    if (m_it != this->_members.end())
         return clientNick;
     return "";
 }
@@ -116,4 +112,8 @@ std::string             Channel::getTopic(void) const {
 }
 void          Channel::setTopic(std::string   newTopic) {
     this->_chanTopic = newTopic;
+}
+
+bool&        Channel::getHasTopic(void) {
+    return (this->_hasTopic );
 }

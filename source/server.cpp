@@ -44,7 +44,7 @@ Server::~Server() {
             t_it->second = NULL; // Avoid dangling pointer
         }
     }
-    _clients.clear();
+    this->_clients.clear();
     close(this->_serverSocketFd);
     std::cout << "Server shut down!\n";
 }
@@ -85,15 +85,8 @@ Client*   Server::getClientByNick(std::string nick) {
     int clFd = this->isClientAvailable(validNick);
     if (clFd == 0)
         return NULL;
-    std::map<int, Client *>::iterator it = this->_clients.lower_bound(clFd);
+    std::map<int, Client *>::iterator it = this->_clients.find(clFd);
     return ((*it).second);
-}
-
-std::string Server::isClientServerOp(std::string nick) {
-    std::set<std::string>::iterator it = this->_serverOperators.lower_bound("@%" + nick);
-    if (it == this->_serverOperators.end() || (*it).substr(2) != nick)
-        return "";
-    return (*it);
 }
 
 /* ------------------------------------------------------------------------------------------ */
@@ -154,8 +147,8 @@ void    Server::addToFdArray(int newfd) {
 }
 
 int    Server::isClientAvailable(std::string nick) const {
-    std::map<std::string, int>::const_iterator map_it = this->_nick_fd_map.lower_bound(nick);
-    if (map_it == this->_nick_fd_map.end() || (*map_it).first != nick)
+    std::map<std::string, int>::const_iterator map_it = this->_nick_fd_map.find(nick);
+    if (map_it == this->_nick_fd_map.end())
         return 0;
     return ((*map_it).second);
 }
@@ -184,20 +177,19 @@ void Server::sendMsgToClient(int clientFd, std::string msg) {
     > close the fd.
 */
 void Server::removeClient(Client *cl, std::string quitMsg) {
-    // we have to find a way to delete a client from the channels he is in
     std::set<std::string> chansInvolved = cl->getChannelsJoined();
     std::set<std::string>::iterator chanIt = chansInvolved.begin();
+
     for (; chanIt != chansInvolved.end(); ++chanIt) {
         Channel *chan = this->getChanByName(*chanIt);
         if (chan == NULL)
             continue ;
-        /* this NOTICE has to be sent to all the channels he was in
-            06:59 -!- tesfa [~dd@5.195.225.158] has quit [Quit: leaving]
-        */
-        this->forwardMsgToChan(chan, cl->getNickName(), quitMsg, true);
-        this->removeClientFromChan(cl->getNickName(), chan);
+        if (chan->getAllMembersNick().size() > 1)
+            this->forwardMsgToChan(chan, cl->getNickName(), quitMsg, true);
+        this->removeClientFromChan(cl, chan);
         chan = NULL;
     }
+    chansInvolved.clear();
     // remove the fd STRUCT from the array as weelllllllll
     std::vector<struct pollfd>::iterator it = this->_fdsArray.begin();
     for (; it != this->_fdsArray.end(); it++) {
@@ -225,30 +217,31 @@ void Server::removeClient(Client *cl, std::string quitMsg) {
  */
 
 void    Server::createChannel(std::string chanName, Client *creator, Command *command) {
-    Channel* newChan = new Channel(chanName, creator);
+    Channel* newChan = new Channel(chanName);
     this->_channels.insert(std::make_pair(chanName, newChan));
     newChan->getAllChanOps().insert(("@" + creator->getNickName()));
     newChan->insertToMemberFdMap((creator->getNickName()), creator->getFd()); // he a chanOp!
-    newChan->addMember((creator->getNickName())); // he a chanOp!
-    creator->addChannelNameToCollection(newChan->getName());
+    newChan->getAllMembersNick().insert((creator->getNickName())); // he a chanOp!
+    creator->getChannelsJoined().insert(newChan->getName());
     std::cout << "CHANNEL : {" << newChan->getName() << "} created!\n";
    this->sendMsgToClient(creator->getFd(), RPL_JOIN(creator->getNickName(), creator->getUserName(), creator->getIpAddr(), chanName));
-   command->names(creator, this); // send names
+   this->namesCmd(creator, chanName); // send names
 }
 
 Channel   *Server::getChanByName(std::string chanName) {
     if (this->_channels.size() == 0) {
         return NULL;
     }
-    std::map<std::string, Channel *>::iterator it = this->_channels.lower_bound(chanName);
-    if (it == this->_channels.end() || (*it).first != chanName)
+    std::map<std::string, Channel *>::iterator it = this->_channels.find(chanName);
+    if (it == this->_channels.end())
         return NULL;
     return ((*it).second);
 }
 
- void      Server::removeClientFromChan(std::string victimNick, Channel *chan) {
+ void      Server::removeClientFromChan(Client *victim, Channel *chan) {
     // delete a user from the channel
-    chan->deleteAMember(victimNick);
+    chan->deleteAMember(victim->getNickName());
+    victim->getChannelsJoined().erase(chan->getName());
     // (channel seize to exist if there is no user)
     if (chan->getNumOfChanMembers() == 0) {
         serverInstance->deleteAChannel(chan);
@@ -288,8 +281,11 @@ void Server::doStuff(Client* client, Command *command) {
         command->join(client, this);
     else if (command->cmd == "KICK")
         command->kick(client, this);
-    else if (command->cmd == "NAMES")
-        command->names(client, this);
+    else if (command->cmd == "NAMES") {
+        std::vector<std::string> channels = split(command->params[0], ',');
+        for(std::vector<std::string>::iterator it = channels.begin(); it != channels.end(); ++it)
+            this->namesCmd(client, *it);
+    }
     else if (command->cmd == "PART")
         command->partLeavChan(client, this);
     else if (command->cmd == "MODE")

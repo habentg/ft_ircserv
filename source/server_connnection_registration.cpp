@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/28 12:54:51 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/03/11 19:25:34 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/16 03:04:56 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,6 +55,7 @@ bool    Server::authenticateClient(Client *cl, Command *command) {
             return (command->nickname(cl, this));
         if (command->cmd == "USER")
             command->user(cl, this);
+        // provide nick
     }
     else
         return (this->sendMsgToClient(cl->getFd(), ERR_REGISTER_FIRST(this->getHostname())), false);
@@ -88,9 +89,6 @@ void Server::userAuthenticationAndWelcome(Client* client, Command *command) {
         this->sendMsgToClient(client->getFd(), RPL_MOTDSTART(this->getHostname(), client->getNickName()));
         this->sendMsgToClient(client->getFd(), RPL_MOTD(this->getHostname(), client->getNickName()));
         this->sendMsgToClient(client->getFd(), RPL_ENDOFMOTD(this->getHostname(), client->getNickName()));
-        // if there is no serverOp, lets give him the honor
-        if (this->_serverOperators.size() == 0)
-            this->_serverOperators.insert("@%" + client->getNickName());
         std::cout << "Client: " << client->getFd() << " is Connected!!\n";
     }
 }

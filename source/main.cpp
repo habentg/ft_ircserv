@@ -57,7 +57,8 @@ int main(int ac, char **av) {
                         serverObj->executeMsg(serverObj->getFdArray()[i].fd); // we will "read" from that fd
                     else if (serverObj->getFdArray()[i].revents == 17) { // for ctrl-c int the cliebt
                         Client *client = serverObj->getClient(serverObj->getFdArray()[i].fd);
-                        serverObj->removeClient(client, Conn_closed(serverObj->getHostname()));
+                        std::string quitMsg = RPL_QUIT(client->getNickName(), client->getUserName(), client->getIpAddr(), "QUIT");
+                        serverObj->removeClient(client, quitMsg);
                     }
                 }
             }
