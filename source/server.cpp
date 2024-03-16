@@ -40,7 +40,8 @@ Server::~Server() {
         t_it = it++;
         Client *client = t_it->second;
         if (client != NULL) {
-            this->removeClient(client, Conn_closed(getHostname()));
+            this->sendMsgToClient(client->getFd(), Conn_closed(this->getHostname()));
+            this->removeClient(client, Conn_closed(this->getHostname()));
             t_it->second = NULL; // Avoid dangling pointer
         }
     }

@@ -453,12 +453,10 @@ void    Command::topic(Client *client, Server *serverInstance) {
     // all members can see topic of the channel
     //but to change it you have to be an OP
     if (this->params.size() == 1) {
-        if (chan->getHasTopic() == false) {
+        if (chan->getHasTopic())
+            serverInstance->sendMsgToClient(client->getFd(), RPL_TOPIC(serverInstance->getHostname(), chan->getName(), chan->getTopic()));
+        else 
             serverInstance->sendMsgToClient(client->getFd(), RPL_TOPICNOTSET(serverInstance->getHostname(), client->getNickName(), chan->getName()));
-            return ;
-        }
-        serverInstance->sendMsgToClient(client->getFd(), RPL_TOPIC(serverInstance->getHostname(), chan->getName(), chan->getTopic()));
-        std::cout << "who set it and the date topic set will be sent as wll\n";
         return ;
     }
     if (chanOp[0] != '@') {
