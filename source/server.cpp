@@ -42,7 +42,6 @@ Server::~Server() {
         if (client != NULL) {
             this->sendMsgToClient(client->getFd(), Conn_closed(this->getHostname()));
             this->removeClient(client, Conn_closed(this->getHostname()));
-            t_it->second = NULL; // Avoid dangling pointer
         }
     }
     this->_clients.clear();
