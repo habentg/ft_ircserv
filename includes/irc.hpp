@@ -101,24 +101,24 @@
 #define ERR_USERONCHANNEL(hostname, nick, inviteeNick, chanName)                std::string(":"+hostname+" 443 "+nick+" "+inviteeNick+" "+chanName+" :user is already in channel\r\n")
 
 /* REPLAY */
-#define userHostMask(senderNick, senderUsername, clientIp)                      std::string(":"+senderNick+"!"+senderUsername+"@"+clientIp)
-#define PRIVMSG_RPLY(senderNick, senderUsername, clientIp, revieverNick, msg)   std::string(userHostMask(senderNick, senderUsername, clientIp)+" PRIVMSG "+revieverNick+" :"+msg+"\r\n")
-#define NOTICE_RPLY(senderNick, senderUsername, clientIp, revieverNick, msg)    std::string(userHostMask(senderNick, senderUsername, clientIp)+" NOTICE "+revieverNick+" :"+msg+"\r\n")
-#define RPL_JOIN(senderNick, senderUsername, clientIp, chanName)                std::string(userHostMask(senderNick, senderUsername, clientIp)+" JOIN "+chanName+"\r\n")
-#define RPL_KICK(k_nick, k_username, k_ip, chanName, victim, kickMsg)           std::string(userHostMask(k_nick, k_username, k_ip)+" KICK "+chanName+" "+victim+" :"+kickMsg+"\r\n")
-#define RPL_QUIT(q_nick, q_username, q_ip, quitMsg)                             std::string(userHostMask(q_nick, q_username, q_ip)+" QUIT :"+quitMsg+"\r\n")
-#define RPL_PART(q_nick, q_username, q_ip, chanName, partMsg)                   std::string(userHostMask(q_nick, q_username, q_ip)+" PART "+chanName+" :"+partMsg+"\r\n")
-#define RPL_NAMES(hostname, nick, chanName)                                     std::string(":" + hostname + " 353 " + nick + " = " + chanName + " :")
-#define RPL_ENDOFNAMES(hostname, nickname, chanName)                            std::string(":"+hostname+" 366 "+nickname+" "+chanName+" :End of /NAMES list.\r\n")
-#define RPL_MODES(nick, username, clientIp, chanName, msg)                                std::string(userHostMask(nick, username, clientIp)+" MODE "+chanName+" "+msg+"\r\n")
-#define RPL_CHANNELMODEIS(hostname, nick, chanName, msg)                                std::string(":"+hostname+" 324 "+nick+" "+chanName+" "+msg+"\r\n")
+#define userHostMask(senderNick, senderUsername, clientIp)                                   std::string(":"+senderNick+"!"+senderUsername+"@"+clientIp)
+#define PRIVMSG_RPLY(senderNick, senderUsername, clientIp, revieverNick, msg)                std::string(userHostMask(senderNick, senderUsername, clientIp)+" PRIVMSG "+revieverNick+" :"+msg+"\r\n")
+#define NOTICE_RPLY(senderNick, senderUsername, clientIp, revieverNick, msg)                 std::string(userHostMask(senderNick, senderUsername, clientIp)+" NOTICE "+revieverNick+" :"+msg+"\r\n")
+#define RPL_JOIN(senderNick, senderUsername, clientIp, chanName)                             std::string(userHostMask(senderNick, senderUsername, clientIp)+" JOIN "+chanName+"\r\n")
+#define RPL_KICK(k_nick, k_username, k_ip, chanName, victim, kickMsg)                        std::string(userHostMask(k_nick, k_username, k_ip)+" KICK "+chanName+" "+victim+" :"+kickMsg+"\r\n")
+#define RPL_QUIT(q_nick, q_username, q_ip, quitMsg)                                          std::string(userHostMask(q_nick, q_username, q_ip)+" QUIT :"+quitMsg+"\r\n")
+#define RPL_PART(q_nick, q_username, q_ip, chanName, partMsg)                                std::string(userHostMask(q_nick, q_username, q_ip)+" PART "+chanName+" :"+partMsg+"\r\n")
+#define RPL_NAMES(hostname, nick, chanName)                                                  std::string(":" + hostname + " 353 " + nick + " = " + chanName + " :")
+#define RPL_ENDOFNAMES(hostname, nickname, chanName)                                         std::string(":"+hostname+" 366 "+nickname+" "+chanName+" :End of /NAMES list.\r\n")
+#define RPL_MODES(nick, username, clientIp, chanName, msg)                                   std::string(userHostMask(nick, username, clientIp)+" MODE "+chanName+" "+msg+"\r\n")
+#define RPL_CHANNELMODEIS(hostname, nick, chanName, msg)                                     std::string(":"+hostname+" 324 "+nick+" "+chanName+" "+msg+"\r\n")
 /* >> :gaim!~dd@5.195.225.158 MODE #habexirc -o tesfa */
-#define RPL_OPERATORGIVEREVOKE(op_nick, op_username, op_ip, chanName, optype, newopnick)  std::string(userHostMask(op_nick, op_username, op_ip)+" MODE "+chanName+" "+optype+" "+newopnick+"\r\n")
+#define RPL_OPERATORGIVEREVOKE(op_nick, op_username, op_ip, chanName, optype, newopnick)    std::string(userHostMask(op_nick, op_username, op_ip)+" MODE "+chanName+" "+optype+" "+newopnick+"\r\n")
 #define RPL_YouIsInvited(op_nick, op_username, op_ip, chanName, inviteeNick)                std::string(userHostMask(op_nick, op_username, op_ip)+" INVITE "+" "+inviteeNick+" "+chanName+" "+"\r\n")
 #define RPL_TIME(hostname, nick, chanName, time)                                            std::string(":"+hostname+" 329 "+nick+" "+chanName+" "+time+"\r\n")
-#define RPL_TOPIC(hostname, chanName, msg)                                                  std::string(":"+hostname+" 332 "+chanName+": "+msg+"\r\n")
-#define RPL_TOPICNOTSET(hostname, chanName, msg)                                                  std::string(":"+hostname+" 331 "+chanName+": topic is not set\r\n")
-#define TOPIC_CHANGE(nick, username, ip, chanName, topicMsg)                   std::string(userHostMask(nick, username, ip)+" TOPIC "+chanName+" :"+topicMsg+"\r\n")
+#define RPL_TOPIC(hostname, nick, chanName, msg)                                            std::string(":"+hostname+" 332 "+nick+" "+chanName+" :"+msg+"\r\n")
+#define RPL_TOPICNOTSET(hostname, nick, chanName)                                           std::string(":"+hostname+" 331 "+nick+" "+chanName+" :topic is not set\r\n")
+#define TOPIC_CHANGE(nick, username, ip, chanName, topicMsg)                                std::string(userHostMask(nick, username, ip)+" TOPIC "+chanName+" :"+topicMsg+"\r\n")
 
 /* Error responses */
 # define INCORRECT_ARGS "Error: Incorrect Numner of arguments!!\n    Usage: ./ft_ircserv <port number <password>"
@@ -137,4 +137,5 @@ unsigned short int          validate_input(int ac, char **av);
 std::vector<std::string>    split(std::string& str, char delimiter);
 void                        printVector(std::vector<std::string> vec);
 std::string                 humanReadableDateTime(void);
+std::string                 trim(std::string& str);
 #endif // !IRC_HPP

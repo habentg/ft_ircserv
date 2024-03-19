@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   bot.cpp                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tpetros <tpetros@student.42abudhabi.ae>    +#+  +:+       +#+        */
+/*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/07 13:50:10 by tpetros           #+#    #+#             */
-/*   Updated: 2024/03/07 13:50:11 by tpetros          ###   ########.fr       */
+/*   Updated: 2024/03/19 07:17:22 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,10 +22,10 @@ void Bot::setDictionary( void )
 	dictionary.push_back("shit");
 	dictionary.push_back("fuck");
 	dictionary.push_back("bitch");
-	dictionary.push_back("Dickhead");
+	dictionary.push_back("dickhead");
 	dictionary.push_back("asshole");
 	dictionary.push_back("whore");
-	dictionary.push_back("twat");
+	dictionary.push_back("hiiiiii~"); // so gay!
 }
 
 Bot::Bot(const std::string& serverIP, int port, const std::string& password)
@@ -70,7 +70,7 @@ bool Bot::isOffensiveWord(const std::string& word) {
 
     for (size_t i = 0; i < dictionary.size(); ++i)
 	{
-        if (lowercaseWord == dictionary[i])
+        if (lowercaseWord.find(dictionary[i]) != std::string::npos)
             return true;
     }
     return false;

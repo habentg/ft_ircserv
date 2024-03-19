@@ -279,7 +279,7 @@ void Server::doStuff(Client* client, Command *command) {
     else if (command->cmd == "QUIT")
         command->quit(client, this);
     /* need to spit first parameter */
-    else if (command->cmd == "PRIVMSG" || command->cmd == "NOTICE" || command->cmd == "NAMES" || command->cmd == "JOIN" || command->cmd == "PART") { 
+    else if (command->cmd == "PRIVMSG" || command->cmd == "NOTICE" || command->cmd == "NAMES" || command->cmd == "JOIN" || command->cmd == "PART") {
         std::vector<std::string> recievers = split(command->params[0], ',');
         for(std::vector<std::string>::iterator it = recievers.begin(); it != recievers.end(); ++it) {
             if (command->cmd == "PRIVMSG")
@@ -292,8 +292,6 @@ void Server::doStuff(Client* client, Command *command) {
                 command->join(client, this, *it);
             else if (command->cmd == "PART")
                 command->part(client, this, *it);
-            else if (command->cmd == "TOPIC")
-                command->topic(client, this, *it);
         }
     }
     /* need to split the second parameter */
@@ -305,6 +303,17 @@ void Server::doStuff(Client* client, Command *command) {
         std::vector<std::string> victims = split(command->params[1], ',');
         for(std::vector<std::string>::iterator it = victims.begin(); it != victims.end(); ++it) {
             command->kick(client, this, *it);
+        }
+    }
+    /* both prameters might need split */
+    else if (command->cmd == "TOPIC") {
+        if (command->params[0] == "-delete")
+            command->unsetTopic(client, serverInstance);
+        else {
+            std::vector<std::string> channels = split(command->params[0], ',');
+            for(std::vector<std::string>::iterator it = channels.begin(); it != channels.end(); ++it) {
+                command->topic(client, this, *it);
+            }
         }
     }
 }

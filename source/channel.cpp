@@ -106,13 +106,10 @@ std::set<std::string>&  Channel::getAllInvitees(void) {
     return (this->_invitedUser);
 }
 
-std::string             Channel::getTopic(void) const {
+std::string&             Channel::getTopic(void) {
     return this->_chanTopic;
-}
-void          Channel::setTopic(std::string   newTopic) {
-    this->_chanTopic = newTopic;
 }
 
 bool&        Channel::getHasTopic(void) {
-    return (this->_hasTopic );
+    return (this->_hasTopic);
 }

@@ -34,10 +34,10 @@ class Command {
         void    kick(Client *senderClient, Server *serverInstance, std::string victim);
         void    quit(Client *senderClient, Server *serverInstance);
         void    part(Client *senderClient, Server *serverInstance, std::string chanName);
-        void    names(Client *client, Server *serverInstance);
         bool    mode(Client *client, Server *serverInstance);
         void    invite(Client *client, Server *serverInstance);
         void    topic(Client *client, Server *serverInstance, std::string chanName);
+        void    unsetTopic(Client *client, Server *serverInstance);
         bool    mode_channel(Client *client, Channel *chan, Server* serverInstance);
         void    mode_user(Client *client, Server* serverInstance);
         bool    mode_i(Channel *chan, Client *client, Server* serverInstance);

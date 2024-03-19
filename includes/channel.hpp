@@ -92,8 +92,7 @@ class Channel {
         bool                    isModeOn(char mode);
         std::set<std::string>&  getAllChanOps();
         std::set<std::string>&  getAllInvitees();
-        std::string             getTopic(void) const;
-        void                    setTopic(std::string  newTopic);
+        std::string&            getTopic(void);
         bool&                   getHasTopic();
 };
 #endif // !CHANNEL_HPP

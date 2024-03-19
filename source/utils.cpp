@@ -86,10 +86,6 @@ std::string humanReadableDateTime(void) {
     
     // Format timeInfo into a string
     char buffer[80];
-    std::strftime(buffer, 80, "%c", timeInfo);
-    
-    // Output human-readable date and time
-    std::cout << "Current time: " << buffer << std::endl;
-    
+    std::strftime(buffer, 80, "%c", timeInfo);    
     return std::string(buffer);
 }
