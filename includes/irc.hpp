@@ -52,7 +52,7 @@
 #define RPL_YOURHOST(hostname, nickname)             std::string(":"+hostname+" 002 "+nickname+" :Your host is "+hostname+", running version <1.0>\r\n")
 #define RPL_CREATED(hostname, nickname, datetime)    std::string(":"+hostname+" 003 "+nickname+" :This server was created on <"+datetime+">\r\n")
 #define RPL_MYINFO(hostname, nickname)               std::string(":"+hostname+" 004 "+nickname+" "+hostname+"\r\n")
-#define RPL_ISUPPORT(hostname, nickname)             std::string(":"+hostname+" 005 "+nickname+" NICKLEN=15 MAXNICKLEN=15 TOPICLEN=250 CHANNELLEN=200 MAXCHANNELLEN=200 CHANTYPES=# CHANMODES=k,l,i,t CASEMAPPING=rfc1459 NETWORK=QuakeNet: are supported by this server\r\n")
+#define RPL_ISUPPORT(hostname, nickname)             std::string(":"+hostname+" 005 "+nickname+" NICKLEN=15 MAXNICKLEN=15 TOPICLEN=250 CHANNELLEN=200 MAXCHANNELLEN=200 CHANTYPES=# CHANMODES=k,l,i,t,o CASEMAPPING=rfc1459 NETWORK=QuakeNet: are supported by this server\r\n")
 #define USERLEN 15 // we will see how to advertise this to the clients
 
 /* MOTD */

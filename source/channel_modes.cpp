@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 09:45:02 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/03/16 02:21:14 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/19 11:52:07 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,25 +25,20 @@
 */
 /* command format to expect: -> [ MODE <target> <+/-mode> ... ] */
 bool Command::mode(Client *client, Server* serverInstance) {
-    // 
-    if (this->params[0][0] == '#') {
-        Channel *chan = serverInstance->getChanByName(this->params[0]);
-        if (chan == NULL)
-            return (serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), client->getNickName(), this->params[0])), false);
-        if (client->getChannelsJoined().find(chan->getName()) == client->getChannelsJoined().end())
-            return (serverInstance->sendMsgToClient(client->getFd(), ERR_YouIsNotInCHANNEL(serverInstance->getHostname(), client->getNickName(), chan->getName())), false);
-        if (this->params.size() == 1) {
-            std::string modesOn = "+";
-            std::set<char>::iterator it = chan->getChannelModes().begin();
-            for (; it != chan->getChannelModes().end(); ++it)
-                modesOn += (*it);
-            serverInstance->sendMsgToClient(client->getFd(), RPL_CHANNELMODEIS(serverInstance->getHostname(), client->getNickName(), chan->getName(), modesOn));
-            return true;
-        }
-        this->mode_channel(client, chan, serverInstance);
+    Channel *chan = serverInstance->getChannel(this->params[0]);
+    if (chan == NULL)
+        return (serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), client->getNickName(), this->params[0])), false);
+    if (client->getChannelsJoined().find(chan->getName()) == client->getChannelsJoined().end())
+        return (serverInstance->sendMsgToClient(client->getFd(), ERR_YouIsNotInCHANNEL(serverInstance->getHostname(), client->getNickName(), chan->getName())), false);
+    if (this->params.size() == 1) {
+        std::string modesOn = "+";
+        std::set<char>::iterator it = chan->getChannelModes().begin();
+        for (; it != chan->getChannelModes().end(); ++it)
+            modesOn += (*it);
+        serverInstance->sendMsgToClient(client->getFd(), RPL_CHANNELMODEIS(serverInstance->getHostname(), client->getNickName(), chan->getName(), modesOn));
+        return true;
     }
-    else
-        this->mode_user(client, serverInstance);
+    this->mode_channel(client, chan, serverInstance);
     return true;
 }
 
@@ -55,17 +50,6 @@ bool Command::mode(Client *client, Server* serverInstance) {
     4. MODE #eu-opers +l 10 / [ MODE #eu-opers -l]  -- Set/remove the user limit to channel
 */
 bool Command::mode_channel(Client *client, Channel *chan, Server* serverInstance) {
-    // for now lets just consider our modes comes in (+m) or (-m) formats:
-        // but in real irc channel, /mode <chan> +i-i+k... 
-    // std::cout << "\n---------------------------------------\n";
-    // std::vector<std::string> modes = split(this->params[1], '-');
-    // std::vector<std::string>::iterator it = modes.begin();
-    // for (; it != modes.end(); ++it) {
-    //     if (it != modes.begin())
-    //         std::cout << ", ";
-    //     std::cout << (*it);
-    // }
-    // std::cout << "\n---------------------------------------\n";
     if (this->params[1] == "i" || this->params[1] == "+i" || this->params[1] == "-i")
        return (this->mode_i(chan, client, serverInstance));
     if (this->params[1] == "o" || this->params[1] == "+o" || this->params[1] == "-o")
@@ -241,7 +225,4 @@ bool    Command::mode_t(Channel *chan, Client *client, Server* serverInstance) {
         return false;
     chan->getChannelModes().insert('t');
     return true;
-}
-/* MODES - applied to users */
-void Command::mode_user(Client *client, Server* serverInstance) {
 }

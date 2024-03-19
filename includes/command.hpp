@@ -39,7 +39,6 @@ class Command {
         void    topic(Client *client, Server *serverInstance, std::string chanName);
         void    unsetTopic(Client *client, Server *serverInstance);
         bool    mode_channel(Client *client, Channel *chan, Server* serverInstance);
-        void    mode_user(Client *client, Server* serverInstance);
         bool    mode_i(Channel *chan, Client *client, Server* serverInstance);
         bool    mode_o(Channel *chan, Client *client, Server* serverInstance);
         bool    mode_k(Channel *chan, Client *client, Server* serverInstance);

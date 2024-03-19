@@ -59,14 +59,14 @@ void    Channel::insertToMemberFdMap(std::string nick, int fd) {
     this->_member_fd_map.insert(std::make_pair(nick, fd));
 }
 
- void            Channel::sendToAllMembers(Server *serverInstance, std::string senderNick, std::string msg, bool chanNotice) {
+ void            Channel::sendToAllMembers(Server *serverInstance, std::string senderNick, std::string msg, bool isChanNotice) {
     Client *senderClient = serverInstance->getClientByNick(senderNick);
     if (senderClient == NULL)
         return ;
     std::map<std::string, int>::iterator m_it = this->_member_fd_map.begin();
     for (; m_it != this->_member_fd_map.end(); ++m_it) {
         Client *recvClient = serverInstance->getClientByNick((*m_it).first);
-        if (chanNotice == true)
+        if (isChanNotice == true)
             serverInstance->sendMsgToClient(recvClient->getFd(), msg);
         else if (senderClient->getFd() != recvClient->getFd()) // #define PRIVMSG_RPLY(senderNick, senderUsername, clientIp, revieverNick, msg)
             serverInstance->sendMsgToClient(recvClient->getFd(), PRIVMSG_RPLY(senderNick, senderClient->getUserName(), senderClient->getIpAddr(), this->getName(), msg));

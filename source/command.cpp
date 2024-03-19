@@ -146,7 +146,7 @@ void Command::privmsg(Client *senderClient, Server *serverInstance, std::string 
     }
     std::string msgPriv = this->raw_cmd.substr(this->raw_cmd.find(':') + 1);
     if (rcver[0] == '#') {
-        Channel *chan = serverInstance->getChanByName(rcver);
+        Channel *chan = serverInstance->getChannel(rcver);
         if (chan == NULL) {
             serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), senderClient->getNickName(), rcver));
             return ;
@@ -186,7 +186,7 @@ void    Command::join(Client *client, Server *serverInstance, std::string chanNa
         serverInstance->sendMsgToClient(client->getFd(), ERR_BADCHANMASK(serverInstance->getHostname(), client->getNickName()));
         return ;
     }
-    Channel *chann = serverInstance->getChanByName(chanName);
+    Channel *chann = serverInstance->getChannel(chanName);
     if (chann == NULL)
     {
         serverInstance->createChannel(chanName, client, this);
@@ -246,7 +246,7 @@ void    Command::join(Client *client, Server *serverInstance, std::string chanNa
  */
 void    Command::kick(Client *senderClient, Server *serverInstance, std::string potentialVictim) {
     // check if channel exists; if not, send error and return!
-    Channel *chan = serverInstance->getChanByName(this->params[0]);
+    Channel *chan = serverInstance->getChannel(this->params[0]);
     if (chan == NULL) {
         serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), senderClient->getNickName(), this->params[0]));
         return ;
@@ -295,7 +295,7 @@ void    Command::quit(Client *senderClient, Server *serverInstance) {
 
 void    Command::part(Client *client, Server *serverInstance, std::string chanName) {
     /* :htg_!~dd@5.195.225.158 PART #gele */
-    Channel *chan = serverInstance->getChanByName(chanName);
+    Channel *chan = serverInstance->getChannel(chanName);
     if (chan == NULL) {
         serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), client->getNickName(), chanName));
         return;
@@ -313,7 +313,7 @@ void    Command::part(Client *client, Server *serverInstance, std::string chanNa
 }
 
 void    Server::namesCmd(Client *client, std::string chanName) {
-    Channel *channel = this->getChanByName(chanName);
+    Channel *channel = this->getChannel(chanName);
     if (channel == NULL) { // If channel doesn't exist, send error message to client
         this->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(this->getHostname(), client->getNickName(), chanName));
         return;
@@ -352,7 +352,7 @@ void    Command::invite(Client *client, Server *serverInstance) {
         return ;
     }
     // checking channel availability and the channel is an invite-only
-    Channel *chan = serverInstance->getChanByName(this->params[1]);
+    Channel *chan = serverInstance->getChannel(this->params[1]);
     if (chan == NULL) {
         serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), client->getNickName(), this->params[1]));
         return ;
@@ -406,7 +406,7 @@ void    Command::unsetTopic(Client *client, Server *serverInstance) {
     }
     std::vector<std::string> channels = split(this->params[1], ',');
     for(std::vector<std::string>::iterator it = channels.begin(); it != channels.end(); ++it) {
-        Channel *chan = serverInstance->getChanByName(*it);
+        Channel *chan = serverInstance->getChannel(*it);
         if (chan == NULL) {
             serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), client->getNickName(), *it));
             return ;
@@ -424,7 +424,7 @@ void    Command::unsetTopic(Client *client, Server *serverInstance) {
 }
 
 void    Command::topic(Client *client, Server *serverInstance, std::string chanName) {
-    Channel *chan = serverInstance->getChanByName(chanName);
+    Channel *chan = serverInstance->getChannel(chanName);
     if (chan == NULL) {
         serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), client->getNickName(), chanName));
         return ;
@@ -463,7 +463,7 @@ void    Command::notice(Client *client, Server *serverInstance, std::string reci
     }
     std::string msgPriv = this->raw_cmd.substr(this->raw_cmd.find(':') + 1);
     if (reciever[0] == '#') {
-        Channel *chan = serverInstance->getChanByName(reciever);
+        Channel *chan = serverInstance->getChannel(reciever);
         if (chan == NULL) {
             serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), client->getNickName(), reciever));
             return ;

@@ -12,10 +12,10 @@
 
 #include "../includes/irc.hpp"
 
-bool    stopServer = false; // global variable to stop the server when CTRL-C is pressed
+bool    serverRunning = true;
 
 void    signalHandler(int sig) {
-    stopServer = true;
+    serverRunning = false;
     if (sig == SIGQUIT)
         std::cout << "QUIT\n";
     else if (sig == SIGINT)
@@ -23,47 +23,48 @@ void    signalHandler(int sig) {
 }
 
 /* Program Entry: */
+/* 
+    -> input validation
+    -> Create a single instance of the server
+    -> Setting up the server to listen on the given port (service)
+    -> Setting up the signal handler for CTRL-QUIT and  CTRL-C signals
+    -> Poll system:
+        * monitoring our fds for any event
+        * waits indefinitely for an event to occur (-1 timeout, the third arg)
+    -> we check at which fd does an event occur:
+        * if its at the listner socket, it means we have a new connection
+        * if its on the other existing sockets, it means we have a message incomming on that respective fd.
+
+*/
 int main(int ac, char **av) {
-    // check number of arguments, and validate port number
     unsigned short int portNumber = validate_input(ac, av);
     if (portNumber == 0)
         return 1;
-    // instantiating a single server object and assigning port-number & password 
     Server *serverObj = Server::createServerInstance(portNumber, std::string(av[2]));
     if (serverObj == NULL)
         return 1;
     try {
-        serverObj->server_listen_setup(av[1]); // setting up the server to listen on the given port (service)
-        while (1) { 
-            signal(SIGINT, signalHandler); // setting up the signal handler for CTRL-C
-            signal(SIGQUIT, signalHandler); // setting up the signal handler for CTRL-QUIT
-            // monitoring our fds for any event.
-            // this will basiclly block untill an "event" happens
-            // it waits indefinitely for an event to occur (-1 timeout, the third arg)
-                //-> for now let it run for indefinitely but later we will add "pinging" feature i.e we will check on our clients after certain ammount of time, and we will desconnect them if they are not active or something.
-            if (poll(&(serverObj->getFdArray()[0]), serverObj->getFdArray().size(), -1) == -1 && !stopServer)
+        serverObj->server_listen_setup(av[1]);
+        signal(SIGINT, signalHandler);
+        signal(SIGQUIT, signalHandler);
+        while (serverRunning) { 
+            if (poll(&(serverObj->getFdArray()[0]), serverObj->getFdArray().size(), -1) == -1 && serverRunning)
                 throw std::runtime_error("Error: polling problem");
-            if (stopServer)
-                break ;
-            // then we check at which fd does the event occur i.e the POLLIN event
-                // -> if its at the listner fd, it means we have a new connection
-                // -> if its on the other existing fds, it means we have a message incomming on that respective fd.
             if (serverObj->getFdArray()[0].revents == POLLIN) { // we accept the new connection and we add the newfd to our array ....
                 serverObj->acceptNewConnection();
-            } else {
-                size_t i = 0;
-                while (++i < serverObj->getFdArray().size() && !stopServer){
-                    if (serverObj->getFdArray()[i].revents == POLLIN)
-                        serverObj->executeMsg(serverObj->getFdArray()[i].fd); // we will "read" from that fd
-                    else if (serverObj->getFdArray()[i].revents == 17 || serverObj->getFdArray()[i].revents == 25) { // for ctrl-c/sigpipe int the client
-                        Client *client = serverObj->getClient(serverObj->getFdArray()[i].fd);
-                        std::string quitMsg = RPL_QUIT(client->getNickName(), client->getUserName(), client->getIpAddr(), "QUIT");
-                        serverObj->removeClient(client, quitMsg);
-                    }
+                continue ;
+            }
+            for (size_t i = 1; i < serverObj->getFdArray().size(); i++)
+            {
+                if (serverObj->getFdArray()[i].revents == POLLIN)
+                    serverObj->recieveMsg(serverObj->getFdArray()[i].fd);
+                else if (serverObj->getFdArray()[i].revents == 17 || serverObj->getFdArray()[i].revents == 25) {
+                    Client *client = serverObj->getClient(serverObj->getFdArray()[i].fd);
+                    serverObj->removeClient(client, RPL_QUIT(client->getNickName(), client->getUserName(), client->getIpAddr(), "17/25"));
                 }
             }
         }
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
         std::cerr << e.what() << std::endl;
     }
     delete serverObj;

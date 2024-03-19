@@ -116,11 +116,11 @@ void Server::server_listen_setup(char *service) {
     if (sockfd == -1) 
         throw std::runtime_error("Error: creating socket");
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enabler, sizeof(int)))
-        throw std::runtime_error("Error: setsockopt");
+        throw std::runtime_error("Error: setsockopt(): " + std::string(strerror(errno)));
     if (fcntl(sockfd, F_SETFL, O_NONBLOCK) < 0)
-        throw std::runtime_error("Error: fcntl");
+        throw std::runtime_error("Error: fcntl(): " + std::string(strerror(errno)));
     if (bind(sockfd, res->ai_addr, res->ai_addrlen) < 0)
-        throw std::runtime_error("Error: binding socket");
+        throw std::runtime_error("Error: bind(): " + std::string(strerror(errno)));
     freeaddrinfo(res);
     if (listen(sockfd, SOMAXCONN) == -1)
         throw std::runtime_error("Error: listening on socket");
@@ -135,10 +135,8 @@ void Server::server_listen_setup(char *service) {
 /*                           Adding new fd to the array of fds                                */
 /* ------------------------------------------------------------------------------------------ */
 void    Server::addToFdArray(int newfd) {
-    // validate the new fd first --- comeback later
     if (newfd < 0) // wont happen but protection
         return ;
-    // also initialize all of them for conditional jumps avoidance
     struct pollfd newConFdStruct;
     newConFdStruct.fd = newfd;
     newConFdStruct.events = POLLIN; // event to watch for is POLLIN
@@ -159,12 +157,6 @@ int    Server::getClientFd(std::string nick) const {
 /*                 Recive a message from an existing connection                               */
 /* ------------------------------------------------------------------------------------------ */
 
-void Server::sendMsgToAllClients(std::string conCloseNotice) {
-    std::map<int, Client *>::iterator it = this->_clients.begin();
-    for (; it != this->_clients.end(); it++)
-        this->sendMsgToClient(it->first, conCloseNotice);
-}
-
 void Server::sendMsgToClient(int clientFd, std::string msg) {
     int bytes_sent = send(clientFd, msg.c_str(), msg.length(), 0);
     if (bytes_sent == -1)
@@ -179,9 +171,8 @@ void Server::sendMsgToClient(int clientFd, std::string msg) {
 void Server::removeClient(Client *cl, std::string quitMsg) {
     std::set<std::string> chansInvolved = cl->getChannelsJoined();
     std::set<std::string>::iterator chanIt = chansInvolved.begin();
-
     for (; chanIt != chansInvolved.end(); ++chanIt) {
-        Channel *chan = this->getChanByName(*chanIt);
+        Channel *chan = this->getChannel(*chanIt);
         if (chan == NULL)
             continue ;
         if (chan->getAllMembersNick().size() > 1)
@@ -190,7 +181,6 @@ void Server::removeClient(Client *cl, std::string quitMsg) {
         chan = NULL;
     }
     chansInvolved.clear();
-    // remove the fd STRUCT from the array as weelllllllll
     std::vector<struct pollfd>::iterator it = this->_fdsArray.begin();
     for (; it != this->_fdsArray.end(); it++) {
         if ((*it).fd == cl->getFd()) {
@@ -198,9 +188,9 @@ void Server::removeClient(Client *cl, std::string quitMsg) {
             break ;
         }
     }
-    this->_clients.erase(cl->getFd()); // remove the client from the map
+    this->_clients.erase(cl->getFd());
     this->_nick_fd_map.erase(cl->getNickName());
-    delete cl; // delete the client object
+    delete cl;
 }
 
 /* ================================================================================================================== */
@@ -220,21 +210,21 @@ void    Server::createChannel(std::string chanName, Client *creator, Command *co
     Channel* newChan = new Channel(chanName);
     this->_channels.insert(std::make_pair(chanName, newChan));
     newChan->getAllChanOps().insert(("@" + creator->getNickName()));
-    newChan->insertToMemberFdMap((creator->getNickName()), creator->getFd()); // he a chanOp!
-    newChan->getAllMembersNick().insert((creator->getNickName())); // he a chanOp!
+    newChan->insertToMemberFdMap((creator->getNickName()), creator->getFd());
+    newChan->getAllMembersNick().insert((creator->getNickName()));
     creator->getChannelsJoined().insert(newChan->getName());
     std::cout << "CHANNEL : {" << newChan->getName() << "} created!\n";
    this->sendMsgToClient(creator->getFd(), RPL_JOIN(creator->getNickName(), creator->getUserName(), creator->getIpAddr(), chanName));
    this->namesCmd(creator, chanName); // send names
 }
 
-Channel   *Server::getChanByName(std::string chanName) {
-    if (this->_channels.size() == 0) {
+Channel   *Server::getChannel(std::string chanName) {
+    if (this->_channels.empty())
+        return NULL;
+    std::map<std::string, Channel *>::iterator it = this->_channels.find(chanName);
+    if (it == this->_channels.end()) {
         return NULL;
     }
-    std::map<std::string, Channel *>::iterator it = this->_channels.find(chanName);
-    if (it == this->_channels.end())
-        return NULL;
     return ((*it).second);
 }
 
@@ -243,8 +233,8 @@ Channel   *Server::getChanByName(std::string chanName) {
     chan->deleteAMember(victim->getNickName());
     victim->getChannelsJoined().erase(chan->getName());
     // (channel seize to exist if there is no user)
-    if (chan->getNumOfChanMembers() == 0) {
-        serverInstance->deleteAChannel(chan);
+    if (chan->getNumOfChanMembers() == 0 && this->getChannel(chan->getName()) != NULL) {
+        this->deleteAChannel(chan);
     }
  }
 
@@ -253,9 +243,9 @@ void    Server::deleteAChannel(Channel *chan) {
     delete chan; // destruct it
 }
 
-void       Server::forwardMsgToChan(Channel *chan, std::string sender, std::string msg, bool chanNotice) {
+void       Server::forwardMsgToChan(Channel *chan, std::string sender, std::string msg, bool isChanNotice) {
     // we have nick-fd table
-    chan->sendToAllMembers(this, sender, msg, chanNotice);
+    chan->sendToAllMembers(this, sender, msg, isChanNotice);
 }
 
 /* ================================================================================================================== */
@@ -272,6 +262,8 @@ void       Server::forwardMsgToChan(Channel *chan, std::string sender, std::stri
  */
 void Server::doStuff(Client* client, Command *command) {
     // instead of split repeatition, I devided the commands on whether they need to split the first parameter, second parameter or they dont need to split!
+    if (command->cmd == "PING")
+        this->sendMsgToClient(client->getFd(), PONG(this->getHostname()));
     if (command->cmd == "MODE") // no need to split
         command->mode(client, this);
     else if (command->cmd == "INVITE")
@@ -308,7 +300,7 @@ void Server::doStuff(Client* client, Command *command) {
     /* both prameters might need split */
     else if (command->cmd == "TOPIC") {
         if (command->params[0] == "-delete")
-            command->unsetTopic(client, serverInstance);
+            command->unsetTopic(client, this);
         else {
             std::vector<std::string> channels = split(command->params[0], ',');
             for(std::vector<std::string>::iterator it = channels.begin(); it != channels.end(); ++it) {
@@ -318,33 +310,7 @@ void Server::doStuff(Client* client, Command *command) {
     }
 }
 
-
-Client *Server::recieveMsg(int clientFd) {
-    char buffer[1024];
-    int buffer_size = sizeof(buffer);
-
-    Client *client = this->getClient(clientFd);
-    if (client == NULL)
-        return NULL;
-    std::memset(buffer, 0, buffer_size);
-    int bytes_received = recv(clientFd, buffer, buffer_size, 0);
-    if (bytes_received == 0) {
-        this->removeClient(client, Conn_closed(this->getHostname()));
-        return (NULL);
-    }
-    if (bytes_received < 0)
-        return NULL;
-    buffer[bytes_received] = '\0'; // Null-terminate the received data coz recv() doesnt
-    client->getRecivedBuffer() += std::string(buffer);
-    if (client->getRecivedBuffer().find("\n") == std::string::npos)
-        return NULL;
-    return client;
-}
-
-void Server::executeMsg(int clientFd) {
-    Client *client = this->recieveMsg(clientFd);
-    if (client == NULL)
-        return ;
+void Server::executeMsg(Client *client) {
     std::vector<std::string> arr_of_cmds = split(client->getRecivedBuffer(), '\0');
     client->getRecivedBuffer().erase(); // empty the buffer - coz its splited and changed to CMD;
     for (std::vector<std::string>::iterator it = arr_of_cmds.begin(); it != arr_of_cmds.end(); ++it) {
@@ -356,12 +322,30 @@ void Server::executeMsg(int clientFd) {
         // we register the client first, (basicly assign nickname, username and other identifiers to the new connection so it can interact with other users)
         if (client->IsClientConnected() == false)
             this->registerClient(client, command);
-        else {// now he can do anything
-            if (command->cmd == "PING")
-                this->sendMsgToClient(client->getFd(), PONG(this->getHostname()));
-            else
-                this->doStuff(client, command);
-        }
+        else
+            this->doStuff(client, command);
         delete command; // we dont need the command anymore
     }
+}
+
+void Server::recieveMsg(int clientFd) {
+    char buffer[1024];
+    int buffer_size = sizeof(buffer);
+
+    Client *client = this->getClient(clientFd);
+    if (client == NULL)
+        return ;
+    std::memset(buffer, 0, buffer_size);
+    int bytes_received = recv(clientFd, buffer, buffer_size, 0);
+    if (bytes_received == 0) {
+        this->removeClient(client, Conn_closed(this->getHostname()));
+        return ;
+    }
+    if (bytes_received < 0)
+        return ;
+    buffer[bytes_received] = '\0'; // Null-terminate the received data coz recv() doesnt
+    client->getRecivedBuffer() += std::string(buffer);
+    if (client->getRecivedBuffer().find("\n") == std::string::npos)
+        return ;
+    this->executeMsg(client);
 }

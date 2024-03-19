@@ -83,7 +83,7 @@ class Channel {
         std::string             isClientaMember(std::string clientNick) const;
         void                    deleteAMember(std::string victim);
         void                    insertToMemberFdMap(std::string nick, int fd);
-        void                    sendToAllMembers(Server *serverInstance, std::string senderNick, std::string msg, bool chanNotice);
+        void                    sendToAllMembers(Server *serverInstance, std::string senderNick, std::string msg, bool isChanNotice);
         std::set<std::string>&  getAllMembersNick();
         void                    setChanKey(std::string newKey);
         void                    setUsersLimit(int num);
