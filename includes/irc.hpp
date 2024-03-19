@@ -32,6 +32,7 @@
 # include <vector>
 # include <map>
 # include <set>
+# include <fstream>
 
 /*  */
 # include "client.hpp"
@@ -49,14 +50,14 @@
 /*  */
 #define RPL_WELCOME(hostname, username, nickname)    std::string(":"+hostname+" 001 "+nickname+" :Welcome to the Internet Relay Network, "+nickname+"!"+username+"@"+hostname+"\r\n")
 #define RPL_YOURHOST(hostname, nickname)             std::string(":"+hostname+" 002 "+nickname+" :Your host is "+hostname+", running version <1.0>\r\n")
-#define RPL_CREATED(hostname, nickname)              std::string(":"+hostname+" 003 "+nickname+" :"+hostname +" was created <human-readable date/time>\r\n")
-#define RPL_MYINFO(hostname, nickname)               std::string(":"+hostname+" 004 "+nickname+" :CLIENT SHOULD DESCOVER AVAILABLE FEATURES using RPL_ISUPPORT tokens <NO FUCKING IDEA HOW TO DO THIS ... TOMORROWS PROBLEM!>\r\n")
-#define RPL_ISUPPORT(hostname, nickname)             std::string(":"+hostname+" 005 "+nickname+" USERLEN=15: are supported by this server\r\n")
+#define RPL_CREATED(hostname, nickname, datetime)    std::string(":"+hostname+" 003 "+nickname+" :This server was created on <"+datetime+">\r\n")
+#define RPL_MYINFO(hostname, nickname)               std::string(":"+hostname+" 004 "+nickname+" "+hostname+"\r\n")
+#define RPL_ISUPPORT(hostname, nickname)             std::string(":"+hostname+" 005 "+nickname+" NICKLEN=15 MAXNICKLEN=15 TOPICLEN=250 CHANNELLEN=200 MAXCHANNELLEN=200 CHANTYPES=# CHANMODES=k,l,i,t CASEMAPPING=rfc1459 NETWORK=QuakeNet: are supported by this server\r\n")
 #define USERLEN 15 // we will see how to advertise this to the clients
 
 /* MOTD */
 #define RPL_MOTDSTART(hostname, nickname)            std::string(":"+hostname+" 375 "+nickname+" :- "+hostname+" Message of the day - \r\n")
-#define RPL_MOTD(hostname, nickname)                 std::string(":"+hostname+" 372 "+nickname+" :- MY NAME IS ...... \r\n")
+#define RPL_MOTD(hostname, nickname, msg)                 std::string(":"+hostname+" 372 "+nickname+" :- "+msg+"\r\n")
 #define RPL_ENDOFMOTD(hostname, nickname)            std::string(":"+hostname+" 376 "+nickname+" :" +hostname+ " End of /MOTD command.\r\n")
 
 /* PONG */
@@ -102,6 +103,7 @@
 /* REPLAY */
 #define userHostMask(senderNick, senderUsername, clientIp)                      std::string(":"+senderNick+"!"+senderUsername+"@"+clientIp)
 #define PRIVMSG_RPLY(senderNick, senderUsername, clientIp, revieverNick, msg)   std::string(userHostMask(senderNick, senderUsername, clientIp)+" PRIVMSG "+revieverNick+" :"+msg+"\r\n")
+#define NOTICE_RPLY(senderNick, senderUsername, clientIp, revieverNick, msg)    std::string(userHostMask(senderNick, senderUsername, clientIp)+" NOTICE "+revieverNick+" :"+msg+"\r\n")
 #define RPL_JOIN(senderNick, senderUsername, clientIp, chanName)                std::string(userHostMask(senderNick, senderUsername, clientIp)+" JOIN "+chanName+"\r\n")
 #define RPL_KICK(k_nick, k_username, k_ip, chanName, victim, kickMsg)           std::string(userHostMask(k_nick, k_username, k_ip)+" KICK "+chanName+" "+victim+" :"+kickMsg+"\r\n")
 #define RPL_QUIT(q_nick, q_username, q_ip, quitMsg)                             std::string(userHostMask(q_nick, q_username, q_ip)+" QUIT :"+quitMsg+"\r\n")
@@ -134,4 +136,5 @@
 unsigned short int          validate_input(int ac, char **av);
 std::vector<std::string>    split(std::string& str, char delimiter);
 void                        printVector(std::vector<std::string> vec);
+std::string                 humanReadableDateTime(void);
 #endif // !IRC_HPP

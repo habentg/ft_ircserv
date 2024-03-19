@@ -61,9 +61,8 @@ void    Channel::insertToMemberFdMap(std::string nick, int fd) {
 
  void            Channel::sendToAllMembers(Server *serverInstance, std::string senderNick, std::string msg, bool chanNotice) {
     Client *senderClient = serverInstance->getClientByNick(senderNick);
-    if (senderClient == NULL) {
+    if (senderClient == NULL)
         return ;
-    }
     std::map<std::string, int>::iterator m_it = this->_member_fd_map.begin();
     for (; m_it != this->_member_fd_map.end(); ++m_it) {
         Client *recvClient = serverInstance->getClientByNick((*m_it).first);

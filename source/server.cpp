@@ -82,7 +82,7 @@ Client*   Server::getClientByNick(std::string nick) {
     std::string validNick = nick;
     if (nick[0] == '@')
         validNick = nick.substr(1);
-    int clFd = this->isClientAvailable(validNick);
+    int clFd = this->getClientFd(validNick);
     if (clFd == 0)
         return NULL;
     std::map<int, Client *>::iterator it = this->_clients.find(clFd);
@@ -146,7 +146,7 @@ void    Server::addToFdArray(int newfd) {
     this->getFdArray().push_back(newConFdStruct);
 }
 
-int    Server::isClientAvailable(std::string nick) const {
+int    Server::getClientFd(std::string nick) const {
     std::map<std::string, int>::const_iterator map_it = this->_nick_fd_map.find(nick);
     if (map_it == this->_nick_fd_map.end())
         return 0;
@@ -271,29 +271,42 @@ void       Server::forwardMsgToChan(Channel *chan, std::string sender, std::stri
     
  */
 void Server::doStuff(Client* client, Command *command) {
-    if (command->cmd == "PING")
-        this->sendMsgToClient(client->getFd(), PONG(this->getHostname()));
-    else if (command->cmd == "PRIVMSG")
-        command->privmsg(client, this);
+    // instead of split repeatition, I devided the commands on whether they need to split the first parameter, second parameter or they dont need to split!
+    if (command->cmd == "MODE") // no need to split
+        command->mode(client, this);
+    else if (command->cmd == "INVITE")
+        command->invite(client, this);
     else if (command->cmd == "QUIT")
         command->quit(client, this);
-    else if (command->cmd == "JOIN")
-        command->join(client, this);
-    else if (command->cmd == "KICK")
-        command->kick(client, this);
-    else if (command->cmd == "NAMES") {
-        std::vector<std::string> channels = split(command->params[0], ',');
-        for(std::vector<std::string>::iterator it = channels.begin(); it != channels.end(); ++it)
-            this->namesCmd(client, *it);
+    /* need to spit first parameter */
+    else if (command->cmd == "PRIVMSG" || command->cmd == "NOTICE" || command->cmd == "NAMES" || command->cmd == "JOIN" || command->cmd == "PART") { 
+        std::vector<std::string> recievers = split(command->params[0], ',');
+        for(std::vector<std::string>::iterator it = recievers.begin(); it != recievers.end(); ++it) {
+            if (command->cmd == "PRIVMSG")
+                command->privmsg(client, this, *it);
+            else if (command->cmd == "NOTICE")
+                command->notice(client, this, *it);
+            else if (command->cmd == "NAMES")
+                this->namesCmd(client, *it);
+            else if (command->cmd == "JOIN")
+                command->join(client, this, *it);
+            else if (command->cmd == "PART")
+                command->part(client, this, *it);
+            else if (command->cmd == "TOPIC")
+                command->topic(client, this, *it);
+        }
     }
-    else if (command->cmd == "PART")
-        command->partLeavChan(client, this);
-    else if (command->cmd == "MODE")
-        command->mode(client, this); 
-    else if (command->cmd == "INVITE")
-        command->invite(client, this); 
-    else if (command->cmd == "TOPIC")
-        command->topic(client, this);
+    /* need to split the second parameter */
+    else if (command->cmd == "KICK") {
+        if (command->params.size() < 2) {
+            this->sendMsgToClient(client->getFd(), ERR_NEEDMOREPARAMS(this->getHostname(), command->cmd));
+            return ;
+        }
+        std::vector<std::string> victims = split(command->params[1], ',');
+        for(std::vector<std::string>::iterator it = victims.begin(); it != victims.end(); ++it) {
+            command->kick(client, this, *it);
+        }
+    }
 }
 
 
@@ -314,9 +327,7 @@ Client *Server::recieveMsg(int clientFd) {
         return NULL;
     buffer[bytes_received] = '\0'; // Null-terminate the received data coz recv() doesnt
     client->getRecivedBuffer() += std::string(buffer);
-    if (std::strchr(client->getRecivedBuffer().c_str(), '\n') == NULL)
-        return NULL;
-    if (client->getRecivedBuffer().size() == 0)
+    if (client->getRecivedBuffer().find("\n") == std::string::npos)
         return NULL;
     return client;
 }
@@ -336,8 +347,12 @@ void Server::executeMsg(int clientFd) {
         // we register the client first, (basicly assign nickname, username and other identifiers to the new connection so it can interact with other users)
         if (client->IsClientConnected() == false)
             this->registerClient(client, command);
-        else // now he can do anything
-            this->doStuff(client, command);
+        else {// now he can do anything
+            if (command->cmd == "PING")
+                this->sendMsgToClient(client->getFd(), PONG(this->getHostname()));
+            else
+                this->doStuff(client, command);
+        }
         delete command; // we dont need the command anymore
     }
 }

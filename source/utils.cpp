@@ -76,3 +76,20 @@ void printVector(std::vector<std::string> vec) {
     }
     std::cout << "]\n";
 }
+
+std::string humanReadableDateTime(void) {
+     // Get current time
+    std::time_t currentTime = std::time(nullptr);
+    
+    // Convert current time to std::tm structure
+    std::tm* timeInfo = std::localtime(&currentTime);
+    
+    // Format timeInfo into a string
+    char buffer[80];
+    std::strftime(buffer, 80, "%c", timeInfo);
+    
+    // Output human-readable date and time
+    std::cout << "Current time: " << buffer << std::endl;
+    
+    return std::string(buffer);
+}

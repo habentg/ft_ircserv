@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/28 12:54:51 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/03/16 03:04:56 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/19 05:09:55 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,12 +82,32 @@ void Server::userAuthenticationAndWelcome(Client* client, Command *command) {
         this->_nick_fd_map.insert(std::pair<std::string, int>(client->getNickName(), client->getFd()));
         this->sendMsgToClient(client->getFd(), RPL_WELCOME(this->getHostname(), client->getUserName(), client->getNickName()));
         this->sendMsgToClient(client->getFd(), RPL_YOURHOST(this->getHostname(), client->getNickName()));
-        this->sendMsgToClient(client->getFd(), RPL_CREATED(this->getHostname(), client->getNickName()));
+        this->sendMsgToClient(client->getFd(), RPL_CREATED(this->getHostname(), client->getNickName(), humanReadableDateTime()));
         this->sendMsgToClient(client->getFd(), RPL_MYINFO(this->getHostname(), client->getNickName()));
         this->sendMsgToClient(client->getFd(), RPL_ISUPPORT(this->getHostname(), client->getNickName()));
         /* MOTD */
         this->sendMsgToClient(client->getFd(), RPL_MOTDSTART(this->getHostname(), client->getNickName()));
-        this->sendMsgToClient(client->getFd(), RPL_MOTD(this->getHostname(), client->getNickName()));
+        // std::ifstream file("toFix.txt", std::ifstream::in);
+        // if (!file.is_open())
+        //     this->sendMsgToClient(client->getFd(), RPL_MOTD(this->getHostname(), client->getNickName(), "Coudnt Open MOTD File! Welcome anyway ....."));
+        // else {
+        //     std::string line;
+        //     while (std::getline(file, line)) {
+        //         this->sendMsgToClient(client->getFd(), RPL_MOTD(this->getHostname(), client->getNickName(), line));
+        //     }
+        //     file.close();
+        // }
+        std::ifstream file("MOTD.txt", std::ifstream::in);
+        if (!file.is_open()) {
+            std::cerr << "Error opening MOTD file!" << std::endl;
+        } else {
+            std::string line;
+            while (std::getline(file, line)) {
+                std::cerr << line << std::endl;
+                this->sendMsgToClient(client->getFd(), RPL_MOTD(this->getHostname(), client->getNickName(), line));
+            }
+            file.close();
+        }
         this->sendMsgToClient(client->getFd(), RPL_ENDOFMOTD(this->getHostname(), client->getNickName()));
         std::cout << "Client: " << client->getFd() << " is Connected!!\n";
     }

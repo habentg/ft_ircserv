@@ -84,12 +84,17 @@ size_t validNickName(std::vector<std::string> nick_params, int clientFd, Server*
 }
 
 /* NICK Command validation */
+/*
+    * ames of IRC entities (clients, servers, channels) are casemapped.
+    This prevents, for example, someone having the nickname 'Dan' and someone else having the nickname 'dan', confusing other users. 
+    Servers MUST advertise the casemapping they use in the RPL_ISUPPORT numeric that’s sent when connection registration has completed.
+*/
 bool    Command::nickname(Client *client, Server* serverInstance) {
     size_t invalidCharIndex = validNickName(this->params, client->getFd(), serverInstance, this->cmd); // double check again
     if (invalidCharIndex == 0) // return only if the is not a single valid character
         return false;
     std::string nick_name = this->params[0].substr(0, invalidCharIndex); 
-    if (serverInstance->isClientAvailable(nick_name) != 0) { // if a client with the same nickname is already available
+    if (serverInstance->getClientFd(nick_name) != 0) { // if a client with the same nickname is already available
         serverInstance->sendMsgToClient(client->getFd(), ERR_NICKNAMEINUSE(serverInstance->getHostname(), nick_name));
         return false;
     }
@@ -134,16 +139,16 @@ has to be sent in this format:
     -> {:nick!username@hostname PRIVMSG nick :<message>}
 */
 // big problem with nickname display thing !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-void Command::privmsg(Client *senderClient, Server *serverInstance) {
+void Command::privmsg(Client *senderClient, Server *serverInstance, std::string rcver) {
     if (this->raw_cmd.find(':') == std::string::npos) {
         serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOTEXTTOSEND(serverInstance->getHostname()));
         return ;
     }
     std::string msgPriv = this->raw_cmd.substr(this->raw_cmd.find(':') + 1);
-    if (this->params[0][0] == '#') {
-        Channel *chan = serverInstance->getChanByName(this->params[0]);
+    if (rcver[0] == '#') {
+        Channel *chan = serverInstance->getChanByName(rcver);
         if (chan == NULL) {
-            serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), senderClient->getNickName(), this->params[0]));
+            serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), senderClient->getNickName(), rcver));
             return ;
         }
         if (senderClient->getChannelsJoined().find(chan->getName()) == senderClient->getChannelsJoined().end()) {
@@ -153,9 +158,9 @@ void Command::privmsg(Client *senderClient, Server *serverInstance) {
         serverInstance->forwardMsgToChan(chan, senderClient->getNickName(), msgPriv, false);
         return ;
     }
-    int recieverFd = serverInstance->isClientAvailable(this->params[0]);
+    int recieverFd = serverInstance->getClientFd(rcver);
     if (recieverFd == 0) {
-        serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOSUCHNICK(serverInstance->getHostname(), senderClient->getNickName(), this->params[0]));
+        serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOSUCHNICK(serverInstance->getHostname(), senderClient->getNickName(), rcver));
         return ;
     }
     serverInstance->sendMsgToClient(recieverFd, PRIVMSG_RPLY(senderClient->getNickName(), senderClient->getUserName(), senderClient->getIpAddr(), serverInstance->getClient(recieverFd)->getNickName(), msgPriv));
@@ -174,7 +179,7 @@ void Command::privmsg(Client *senderClient, Server *serverInstance) {
     >> :tngnet.nl.quakenet.org 353 habuye_ = #42chn :habuye_ habuye @habex_
     >> :tngnet.nl.quakenet.org 366 habuye_ #42chn :End of /NAMES list.
 */
-void    Command::join_util(Client *client, Server *serverInstance, std::string chanName) {
+void    Command::join(Client *client, Server *serverInstance, std::string chanName) {
     if (chanName[0] != '#' || chanName.find(7) != std::string::npos) {
         // incase of a channel name having a space, we can reconstruct the "name" but I am lazy now!
         //{:adrift.sg.quakenet.org 403 tesfa #fhfjk :No such channel}
@@ -231,25 +236,14 @@ void    Command::join_util(Client *client, Server *serverInstance, std::string c
         chann->getAllInvitees().erase(client->getNickName()); // invitation used and expired!!!
 }
 
-void    Command::join(Client *client, Server *serverInstance) {
-    std::vector<std::string> channels = split(this->params[0], ',');
-    for (std::vector<std::string>::iterator it = channels.begin(); it != channels.end(); ++it)
-        this->join_util(client, serverInstance, *it);
-    
-}
-
 /*
     Command: KICK
     Parameters: <channel> <user> *( "," <user> ) [<comment>]
 
     recieved format: {KICK #42 tesfa_ :he is real bad man}
  */
-void    Command::kick(Client *senderClient, Server *serverInstance) {
+void    Command::kick(Client *senderClient, Server *serverInstance, std::string potentialVictim) {
     // check if channel exists; if not, send error and return!
-    if (this->params.size() < 2) {
-        std::cout << "not enough parameters for kick cmd\n";
-        return ;
-    }
     Channel *chan = serverInstance->getChanByName(this->params[0]);
     if (chan == NULL) {
         serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), senderClient->getNickName(), this->params[0]));
@@ -267,7 +261,7 @@ void    Command::kick(Client *senderClient, Server *serverInstance) {
         return ;
     }
     // check if the user exists in said channel, if not send error and return
-    std::string victim = chan->isClientaMember(this->params[1]);
+    std::string victim = chan->isClientaMember(potentialVictim);
     if (victim == "") {
         serverInstance->sendMsgToClient(senderClient->getFd(), ERR_USERNOTINCHANNEL(serverInstance->getHostname(), senderClient->getNickName(), chan->getName()));
         return ;
@@ -297,11 +291,13 @@ void    Command::quit(Client *senderClient, Server *serverInstance) {
     serverInstance->removeClient(senderClient, quitMsg);
 }
 
-void    Command::partLeavChan(Client *client, Server *serverInstance) {
+void    Command::part(Client *client, Server *serverInstance, std::string chanName) {
     /* :htg_!~dd@5.195.225.158 PART #gele */
-    Channel *chan = serverInstance->getChanByName(this->params[0]);
-    if (chan == NULL)
-        return ;
+    Channel *chan = serverInstance->getChanByName(chanName);
+    if (chan == NULL) {
+        serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), client->getNickName(), chanName));
+        return;
+    }
     if (client->getChannelsJoined().find(chan->getName()) == client->getChannelsJoined().end()) {
         serverInstance->sendMsgToClient(client->getFd(), ERR_YouIsNotInCHANNEL(serverInstance->getHostname(), client->getNickName(), chan->getName()));
         return ;
@@ -413,7 +409,7 @@ void    Command::invite(Client *client, Server *serverInstance) {
         serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHNICK(serverInstance->getHostname(), client->getNickName(), this->params[0]));
         return ;
     }
-    if (invitee->getChannelsJoined().find(chan->getName()) == invitee->getChannelsJoined().end()) {
+    if (invitee->getChannelsJoined().find(chan->getName()) != invitee->getChannelsJoined().end()) {
         serverInstance->sendMsgToClient(client->getFd(), ERR_USERONCHANNEL(serverInstance->getHostname(), client->getNickName(), invitee->getNickName(), chan->getName()));
         return ;
     }
@@ -439,10 +435,10 @@ void    Command::invite(Client *client, Server *serverInstance) {
     17:09 -!- Topic for #42chn: this is new topic
     17:09 -!- Topic set by habex_ [~hab@5.195.225.158] [Sun Mar 10 17:04:16 2024]
 */
-void    Command::topic(Client *client, Server *serverInstance) {
-    Channel *chan = serverInstance->getChanByName(this->params[0]);
+void    Command::topic(Client *client, Server *serverInstance, std::string chanName) {
+    Channel *chan = serverInstance->getChanByName(chanName);
     if (chan == NULL) {
-        serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), client->getNickName(), this->params[0]));
+        serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), client->getNickName(), chanName));
         return ;
     }
     std::string chanOp = chan->isClientaMember(client->getNickName());
@@ -470,4 +466,36 @@ void    Command::topic(Client *client, Server *serverInstance) {
     chan->getHasTopic() = true;
     serverInstance->forwardMsgToChan(chan, client->getNickName(), TOPIC_CHANGE(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), chan->getTopic()), true);
     std::cout << "topic changed\n";
+}
+
+
+void    Command::notice(Client *client, Server *serverInstance, std::string reciever) {
+    /* NOTICE_RPLY */
+    if (this->raw_cmd.find(':') == std::string::npos) {
+        serverInstance->sendMsgToClient(client->getFd(), ERR_NOTEXTTOSEND(serverInstance->getHostname()));
+        return ;
+    }
+    std::string msgPriv = this->raw_cmd.substr(this->raw_cmd.find(':') + 1);
+    if (reciever[0] == '#') {
+        Channel *chan = serverInstance->getChanByName(reciever);
+        if (chan == NULL) {
+            serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), client->getNickName(), reciever));
+            return ;
+        }
+        if (client->getChannelsJoined().find(chan->getName()) == client->getChannelsJoined().end()) {
+            serverInstance->sendMsgToClient(client->getFd(), ERR_YouIsNotInCHANNEL(serverInstance->getHostname(), client->getNickName(), chan->getName()));
+            return ;
+        }
+        /* std::string(userHostMask(senderNick, senderUsername, clientIp)+" NOTICE "+revieverNick+" :"+msg+"\r\n") */
+        std::string notice = NOTICE_RPLY(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), msgPriv);
+        serverInstance->forwardMsgToChan(chan, client->getNickName(), notice, false);
+        return ;
+    }
+    int recieverFd = serverInstance->getClientFd(reciever);
+    if (recieverFd == 0) {
+        serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHNICK(serverInstance->getHostname(), client->getNickName(), reciever));
+        return ;
+    }
+    std::string notice = NOTICE_RPLY(client->getNickName(), client->getUserName(), client->getIpAddr(),  serverInstance->getClient(recieverFd)->getNickName(), msgPriv);
+    serverInstance->sendMsgToClient(recieverFd, notice);
 }

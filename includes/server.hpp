@@ -56,7 +56,7 @@ class Server {
         void                        userAuthenticationAndWelcome(Client* cl, Command *command);
         Client                      *recieveMsg(int clientFd);
         void                        executeMsg(int clientFd);
-        int                         isClientAvailable(std::string nick) const;
+        int                         getClientFd(std::string nick) const;
         void                        sendMsgToClient(int clientFd, std::string msg);
         void                        sendMsgToAllClients(std::string msg);
         void                        doStuff(Client* client, Command *command);

@@ -4,19 +4,22 @@
 # include <string>
 # include <vector>
 # include <map>
+# include <ctime>
 # include <set>
+# include <fstream>
 
 int main(void) {
-    std::vector<std::string> chansInvolved;
 
-    chansInvolved.push_back("a");
-    chansInvolved.push_back(",");
-    chansInvolved.push_back("6");
-    chansInvolved.push_back(";");
-    chansInvolved.push_back("l");
-    chansInvolved.push_back("c");
-    chansInvolved.push_back("h");
-    chansInvolved.push_back("e");
-    chansInvolved.push_back("d");
+    std::ifstream file("MOTD.txt", std::ifstream::in);
+    if (!file.is_open()) {
+        std::cerr << "Error opening MOTD file!" << std::endl;
+    } else {
+        std::string line;
+        while (std::getline(file, line)) {
+            std::cerr << line << std::endl;
+        }
+        file.close();
+    }
 
 }
+

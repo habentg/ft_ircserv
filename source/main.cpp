@@ -55,7 +55,7 @@ int main(int ac, char **av) {
                 while (++i < serverObj->getFdArray().size() && !stopServer){
                     if (serverObj->getFdArray()[i].revents == POLLIN)
                         serverObj->executeMsg(serverObj->getFdArray()[i].fd); // we will "read" from that fd
-                    else if (serverObj->getFdArray()[i].revents == 17) { // for ctrl-c int the cliebt
+                    else if (serverObj->getFdArray()[i].revents == 17 || serverObj->getFdArray()[i].revents == 25) { // for ctrl-c/sigpipe int the client
                         Client *client = serverObj->getClient(serverObj->getFdArray()[i].fd);
                         std::string quitMsg = RPL_QUIT(client->getNickName(), client->getUserName(), client->getIpAddr(), "QUIT");
                         serverObj->removeClient(client, quitMsg);
