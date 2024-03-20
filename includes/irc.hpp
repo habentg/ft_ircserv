@@ -74,7 +74,8 @@
     << MODE #habexirc +o tesfazgi
     >> :hostsailor.ro.quakenet.org 401 gaim tesfazgi :No such nick
 */
-#define ERR_NOSUCHNICK(hostname, nickname, rcvNick)                          std::string(":"+hostname+" 401 "+nickname+rcvNick+" :No such user\r\n")
+/* >> :adrift.sg.quakenet.org 401 kk zeyelepeo :No such nick */
+#define ERR_NOSUCHNICK(hostname, nickname, rcvNick)                          std::string(":"+hostname+" 401 "+nickname+" "+rcvNick+" :No such user\r\n")
 #define ERR_NOTEXTTOSEND(hostname)                                  std::string(":"+hostname+" 412 :No text to send\r\n")
 #define ERR_REGISTER_FIRST(hostname)                                std::string(":"+hostname+" 451 * :Register first\r\n")
 #define ERR_NOPRIVILEGES(hostname, nickname)                        std::string(":"+hostname+" 481 "+nickname+" :Permission to KILL a user DENAID, You aint an Server-OP!\r\n")
@@ -115,7 +116,6 @@
 /* >> :gaim!~dd@5.195.225.158 MODE #habexirc -o tesfa */
 #define RPL_OPERATORGIVEREVOKE(op_nick, op_username, op_ip, chanName, optype, newopnick)    std::string(userHostMask(op_nick, op_username, op_ip)+" MODE "+chanName+" "+optype+" "+newopnick+"\r\n")
 #define RPL_YouIsInvited(op_nick, op_username, op_ip, chanName, inviteeNick)                std::string(userHostMask(op_nick, op_username, op_ip)+" INVITE "+" "+inviteeNick+" "+chanName+" "+"\r\n")
-#define RPL_TIME(hostname, nick, chanName, time)                                            std::string(":"+hostname+" 329 "+nick+" "+chanName+" "+time+"\r\n")
 #define RPL_TOPIC(hostname, nick, chanName, msg)                                            std::string(":"+hostname+" 332 "+nick+" "+chanName+" :"+msg+"\r\n")
 #define RPL_TOPICNOTSET(hostname, nick, chanName)                                           std::string(":"+hostname+" 331 "+nick+" "+chanName+" :topic is not set\r\n")
 #define TOPIC_CHANGE(nick, username, ip, chanName, topicMsg)                                std::string(userHostMask(nick, username, ip)+" TOPIC "+chanName+" :"+topicMsg+"\r\n")

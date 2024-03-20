@@ -282,8 +282,11 @@ void       Server::forwardMsgToChan(Channel *chan, std::string sender, std::stri
  */
 void Server::doStuff(Client* client, Command *command) {
     // instead of split repeatition, I devided the commands on whether they need to split the first parameter, second parameter or they dont need to split!
-    if (command->cmd == "PING")
+    if (command->cmd == "PING") {
         this->sendMsgToClient(client->getFd(), PONG(this->getHostname()));
+        return ;
+    }
+    std::cout << "FUll-cmd :<" << command->raw_cmd << ">\n";
     if (command->cmd == "MODE") // no need to split
         command->mode(client, this);
     else if (command->cmd == "INVITE")
@@ -332,38 +335,38 @@ void Server::doStuff(Client* client, Command *command) {
         std::string temp_nick = client->getNickName();
         if (!command->nickname(client, this))
             return ;
-        this->sendMsgToClient(client->getFd(), RPL_WELCOME(this->getHostname(), client->getUserName(), client->getNickName()));
+        // this->sendMsgToClient(client->getFd(), RPL_WELCOME(this->getHostname(), client->getUserName(), client->getNickName()));
 
         _nick_fd_map.erase(temp_nick);
         _nick_fd_map[client->getNickName()] = client->getFd();
-
-        std::set<std::string> channels = client->getChannelsJoined();
-        for (const std::string& channel_name : channels) {
-            Channel* channel = this->getChannel(channel_name);
-            if (channel) {
-                std::map<std::string, int>& member_fd_map = channel->get_member_fd_map();
-                std::set<std::string>& all_chan_mem = channel->getAllMembersNick();
-                std::set<std::string>::iterator it_n = all_chan_mem.begin();
-                for (; it_n != all_chan_mem.end(); ++it_n) {
-                    if ((*it_n) == temp_nick)
-                    {
-                        // std::cout << "something something: " << *it_n << std::endl;
-                        all_chan_mem.erase(*it_n);
-                        all_chan_mem.insert(client->getNickName());
-                    }
-                }
-                std::set<std::string>& chanops = channel->getAllChanOps();
-                if (chanops.find("@" + temp_nick) != chanops.end())
+        sendMsgToClient(client->getFd(), userHostMask(temp_nick,  client->getUserName(), this->getHostname()) + " NICK :" + client->getNickName() + "\r\n");
+        std::set<std::string>& channels = client->getChannelsJoined();
+        std::set<std::string>::iterator channel_name = channels.begin();
+        for (; channel_name != channels.end(); ++channel_name) {
+            Channel* channel = this->getChannel(*channel_name);
+            if (!channel)
+                continue ;
+            std::map<std::string, int>& member_fd_map = channel->get_member_fd_map();
+            std::set<std::string>& all_chan_mem = channel->getAllMembersNick();
+            std::set<std::string>::iterator it_n = all_chan_mem.begin();
+            for (; it_n != all_chan_mem.end(); ++it_n) {
+                if ((*it_n) == temp_nick)
                 {
-                    chanops.erase("@" + temp_nick);
-                    chanops.insert("@" + client->getNickName());
+                    // std::cout << "something something: " << *it_n << std::endl;
+                    all_chan_mem.erase(*it_n);
+                    all_chan_mem.insert(client->getNickName());
                 }
-                member_fd_map.erase(temp_nick);
-                member_fd_map[client->getNickName()] = client->getFd();
-
-                std::string tosend = ":" + temp_nick + "!" + client->getUserName() + "@" + this->getHostname() + " NICK :" + client->getNickName();
-                this->forwardMsgToChan(channel, client->getNickName(), tosend, true);
             }
+            std::set<std::string>& chanops = channel->getAllChanOps();
+            if (chanops.find("@" + temp_nick) != chanops.end())
+            {
+                chanops.erase("@" + temp_nick);
+                chanops.insert("@" + client->getNickName());
+            }
+            member_fd_map.erase(temp_nick);
+            member_fd_map[client->getNickName()] = client->getFd();
+            std::string tosend = userHostMask(temp_nick,  client->getUserName(), this->getHostname()) + " NICK " + client->getNickName() + "\r\n";
+            this->forwardMsgToChan(channel, client->getNickName(), tosend, true);
         }
     }
 }
