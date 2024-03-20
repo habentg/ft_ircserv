@@ -101,44 +101,85 @@ void Bot::kickUser(const std::string& user, std::string channel)
 
 int	check_pass( std::string message )
 {
-	size_t pos = message.find_last_of(":");
-	std::string the_message;
-	if (pos != std::string::npos)
-	{
-		the_message = message.substr(pos + 1, message.length());
-		std::vector<std::string> temp = split(the_message, ' ');
-		if (temp[1] == "incorrect" || temp[1] == "already")
-			return (1);
-	}
+    if (!message.empty())
+    {
+        size_t pos = message.find_last_of(":");
+        std::string the_message;
+        if (pos != std::string::npos)
+        {
+            the_message = message.substr(pos + 1, message.length());
+            std::vector<std::string> temp = split(the_message, ' ');
+            if (temp[1] == "incorrect" || temp[1] == "already")
+                return (1);
+        }
+    }
 	return (0);
 }
 
-void Bot::monitor( std::string channel )
+bool serverRunning = true;
+bool signalRecieved = false;
+
+void signalHandler(int signum)
+{
+    (void) signum;
+    serverRunning = false;
+    signalRecieved = true;
+}
+
+void Bot::monitor(std::string channel) 
 {
     char buffer[4096];
-    while (true)
-	{
-        ssize_t bytesRead = recv(sockfd, buffer, sizeof(buffer), 0);
-		if (check_pass((buffer)))
-			throw std::runtime_error("Wrong password or User with that nick name already exists!\n, bot cannot be connected!");
-        if (bytesRead <= 0)
-		{
-            std::cerr << "Error receiving data" << std::endl;
+    std::memset(buffer, 0, sizeof(buffer));
+    bool passwordChecked = false;
+
+    std::signal(SIGINT, signalHandler);
+    std::signal(SIGQUIT, signalHandler);
+
+    struct pollfd fds[1];
+    fds[0].fd = sockfd;
+    fds[0].events = POLLIN;
+
+    while (serverRunning) 
+    {
+        int ret = poll(fds, 1, -1);
+        if (ret == -1 && signalRecieved) 
+        {
+            serverRunning = false;
             break;
         }
-        std::string message(buffer, bytesRead);
-		std::string temp = "PRIVMSG #" + channel;
-        if (message.find(temp) != std::string::npos && checkOffensiveWords(message))
-		{
-            size_t pos = message.find("!");
-            if (pos != std::string::npos)
-			{
-                std::string user = message.substr(1, pos - 1);
-                kickUser(user, channel);
+        else if (ret == -1)
+            throw std::runtime_error("Error: polling problem");
+
+        if (fds[0].revents == fds[0].events)
+        {
+            ssize_t bytesRead = recv(sockfd, buffer, sizeof(buffer), 0);
+            if (bytesRead <= 0)
+            {
+                std::cerr << "Error receiving data" << std::endl;
+                break;
+            }
+            std::string message(buffer, bytesRead);
+            if (!passwordChecked)
+            {
+                if (check_pass(message)) {
+                    throw std::runtime_error("Wrong password or User with that nick name already exists!\n, bot cannot be connected!");   
+                }
+                passwordChecked = true;
+            }
+            std::string temp = "PRIVMSG #" + channel;
+            if (message.find(temp) != std::string::npos && checkOffensiveWords(message))
+            {
+                size_t pos = message.find("!");
+                if (pos != std::string::npos)
+                {
+                    std::string user = message.substr(1, pos - 1);
+                    kickUser(user, channel);
+                }
             }
         }
     }
 }
+
 
 void Bot::sendMsg( const std::string& message )
 {

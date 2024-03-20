@@ -22,6 +22,10 @@
 # include <algorithm>
 # include <sstream>
 # include <exception>
+#include <cstring>
+#include <stdexcept>
+#include <poll.h>
+#include <csignal>
 
 class Bot 
 {

@@ -34,10 +34,10 @@ void parse_args( int ac, char **av, int &port, std::string& serverIp, std::strin
 
 int main(int ac, char **av) 
 {
-    std::string serverIp;
-    int port; 
-	std::string password;
-    std::string channel;
+    std::string serverIp = "";
+    int port = 0; 
+	std::string password = "";
+    std::string channel = "";
 
 	parse_args(ac, av, port, serverIp, password, channel);
 	if (password.empty())
