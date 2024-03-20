@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 09:45:02 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/03/19 11:52:07 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/20 10:51:45 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,8 @@
 */
 /* command format to expect: -> [ MODE <target> <+/-mode> ... ] */
 bool Command::mode(Client *client, Server* serverInstance) {
+    if (this->params[0][0] != '#')
+        return false;
     Channel *chan = serverInstance->getChannel(this->params[0]);
     if (chan == NULL)
         return (serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHCHANNEL(serverInstance->getHostname(), client->getNickName(), this->params[0])), false);

@@ -163,6 +163,7 @@ void Command::privmsg(Client *senderClient, Server *serverInstance, std::string 
         serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOSUCHNICK(serverInstance->getHostname(), senderClient->getNickName(), rcver));
         return ;
     }
+    std::cout << "sending privmsg ..... " << std::endl;
     serverInstance->sendMsgToClient(recieverFd, PRIVMSG_RPLY(senderClient->getNickName(), senderClient->getUserName(), senderClient->getIpAddr(), serverInstance->getClient(recieverFd)->getNickName(), msgPriv));
 }
 
@@ -210,18 +211,25 @@ void    Command::join(Client *client, Server *serverInstance, std::string chanNa
     /* before joining him to channel -- we have to check if he has a correct key and if the user limit of the channel is reached (both of them if nessesaary) */
     else if ((chann->isModeOn('k') || chann->isModeOn('l')))
     {
-        if (this->params.size() == 1 || (this->params[1] != chann->getChanKey())){// he came without key or there is key mismatch
+        if (chann->isModeOn('l') && chann->getNumOfChanMembers() == chann->getUsersLimit()) {
+            serverInstance->sendMsgToClient(client->getFd(), ERR_CHANNELISFULL(serverInstance->getHostname(), client->getNickName(), chann->getName()));
+            return ;
+        }
+        /* JOIN #42 */
+        std::set<std::string>::iterator it = chann->getAllInvitees().find(client->getNickName());
+        if (this->params.size() == 1 && it == chann->getAllInvitees().end()) {
+            std::cout << " is me here\n";
             serverInstance->sendMsgToClient(client->getFd(), ERR_BADCHANNELKEY(serverInstance->getHostname(), client->getNickName(), chann->getName()));
             return ;
         }
-        if (chann->isModeOn('l') && chann->getNumOfChanMembers() == chann->getUsersLimit()) {
-            serverInstance->sendMsgToClient(client->getFd(), ERR_CHANNELISFULL(serverInstance->getHostname(), client->getNickName(), chann->getName()));
+        else if (it == chann->getAllInvitees().end() && this->params[1] != chann->getChanKey()){// he came without key or there is key mismatch
+            std::cout << " is me here - 2\n";
+            serverInstance->sendMsgToClient(client->getFd(), ERR_BADCHANNELKEY(serverInstance->getHostname(), client->getNickName(), chann->getName()));
             return ;
         }
         // at this point he got the correct key and channel user limmit hasnt been reached yet
     }
     if (chann->getAllMembersNick().find(client->getNickName()) != chann->getAllMembersNick().end()) {
-        std::cout << "already in channel\n";
         return ;
     }
     chann->getAllMembersNick().insert(client->getNickName());
@@ -234,8 +242,7 @@ void    Command::join(Client *client, Server *serverInstance, std::string chanNa
         serverInstance->sendMsgToClient(client->getFd(), RPL_TOPIC(serverInstance->getHostname(), client->getNickName(), chann->getName(), chann->getTopic()));
     // RPL_NAMES
     serverInstance->namesCmd(client, chanName);
-    if (chann->isModeOn('i'))
-        chann->getAllInvitees().erase(client->getNickName()); // invitation used and expired!!!
+    chann->getAllInvitees().erase(client->getNickName());
 }
 
 /*
@@ -378,7 +385,9 @@ void    Command::invite(Client *client, Server *serverInstance) {
         return ;
     }
     // adding invitee's nick name in our record of invitee's (needed to be deleted after one time use)
+    std::cout << "invited size: " << chan->getAllInvitees().size() << std::endl;
     chan->getAllInvitees().insert(invitee->getNickName());
+    std::cout << "invited size: " << chan->getAllInvitees().size() << std::endl;
     serverInstance->sendMsgToClient(invitee->getFd(), RPL_YouIsInvited(client->getNickName(), client->getNickName(), client->getIpAddr(), chan->getName(), invitee->getNickName()));
     /* >> :afk!~hab@5.195.225.158 INVITE cfk #42chanasfaf */
 }
