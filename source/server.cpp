@@ -144,13 +144,33 @@ void    Server::addToFdArray(int newfd) {
     this->getFdArray().push_back(newConFdStruct);
 }
 
-int    Server::getClientFd(std::string nick) const {
-    std::map<std::string, int>::const_iterator map_it = this->_nick_fd_map.find(nick);
-    if (map_it == this->_nick_fd_map.end())
-        return 0;
-    return ((*map_it).second);
+// int    Server::getClientFd(std::string nick) const {
+//     std::map<std::string, int>::const_iterator map_it = this->_nick_fd_map.find(nick);
+//     if (map_it == this->_nick_fd_map.end())
+//         return 0;
+//     return ((*map_it).second);
+// }
+
+
+const std::map<int, Client*>& Server::getAllClients() const
+{
+    return this->_clients;
 }
 
+std::map<std::string, Channel *>& Server::getAllChannels( void )
+{
+    return this->_channels;
+}
+
+int Server::getClientFd(std::string nick) const {
+    std::map<int, Client*>::const_iterator it = _clients.begin();
+
+    for (; it != _clients.end(); ++it) {
+        if (nick == it->second->getNickName())
+            return it->second->getFd();
+    }
+    return 0;
+}
 
 
 /* ------------------------------------------------------------------------------------------ */
@@ -305,6 +325,44 @@ void Server::doStuff(Client* client, Command *command) {
             std::vector<std::string> channels = split(command->params[0], ',');
             for(std::vector<std::string>::iterator it = channels.begin(); it != channels.end(); ++it) {
                 command->topic(client, this, *it);
+            }
+        }
+    }
+    else if (command->cmd == "NICK" && client->getIsAuthenticated()) {
+        std::string temp_nick = client->getNickName();
+        if (!command->nickname(client, this))
+            return ;
+        this->sendMsgToClient(client->getFd(), RPL_WELCOME(this->getHostname(), client->getUserName(), client->getNickName()));
+
+        _nick_fd_map.erase(temp_nick);
+        _nick_fd_map[client->getNickName()] = client->getFd();
+
+        std::set<std::string> channels = client->getChannelsJoined();
+        for (const std::string& channel_name : channels) {
+            Channel* channel = this->getChannel(channel_name);
+            if (channel) {
+                std::map<std::string, int>& member_fd_map = channel->get_member_fd_map();
+                std::set<std::string>& all_chan_mem = channel->getAllMembersNick();
+                std::set<std::string>::iterator it_n = all_chan_mem.begin();
+                for (; it_n != all_chan_mem.end(); ++it_n) {
+                    if ((*it_n) == temp_nick)
+                    {
+                        // std::cout << "something something: " << *it_n << std::endl;
+                        all_chan_mem.erase(*it_n);
+                        all_chan_mem.insert(client->getNickName());
+                    }
+                }
+                std::set<std::string>& chanops = channel->getAllChanOps();
+                if (chanops.find("@" + temp_nick) != chanops.end())
+                {
+                    chanops.erase("@" + temp_nick);
+                    chanops.insert("@" + client->getNickName());
+                }
+                member_fd_map.erase(temp_nick);
+                member_fd_map[client->getNickName()] = client->getFd();
+
+                std::string tosend = ":" + temp_nick + "!" + client->getUserName() + "@" + this->getHostname() + " NICK :" + client->getNickName();
+                this->forwardMsgToChan(channel, client->getNickName(), tosend, true);
             }
         }
     }

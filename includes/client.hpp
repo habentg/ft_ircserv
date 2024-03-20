@@ -45,7 +45,7 @@ class Client {
         bool            getIsAuthenticated(void) const;
         void            setIsAuthenticated(bool value);
         
-        std::string     getNickName(void) const;
+        const std::string&     getNickName(void);
         void            setNICK(std::string value);
         
         std::string     getUserName(void) const;

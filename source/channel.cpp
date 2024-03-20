@@ -113,3 +113,7 @@ std::string&             Channel::getTopic(void) {
 bool&        Channel::getHasTopic(void) {
     return (this->_hasTopic);
 }
+
+std::map<std::string, int>& Channel::get_member_fd_map( void ) {
+    return (this->_member_fd_map);
+}

@@ -59,6 +59,8 @@ class Server {
         void                        removeClientFromChan(Client *victim, Channel *chan);
         void                        forwardMsgToChan(Channel *chan, std::string sender, std::string msg, bool isChanNotice);
         void                        namesCmd(Client *client, std::string chanName);
+        const std::map<int, Client*>& getAllClients() const;
+        std::map<std::string, Channel *>& getAllChannels( void );
 };
 
 #endif //!SERVER_HPP

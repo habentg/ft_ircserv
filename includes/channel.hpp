@@ -94,5 +94,6 @@ class Channel {
         std::set<std::string>&  getAllInvitees();
         std::string&            getTopic(void);
         bool&                   getHasTopic();
+        std::map<std::string, int>& get_member_fd_map( void );
 };
 #endif // !CHANNEL_HPP

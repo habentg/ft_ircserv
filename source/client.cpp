@@ -44,7 +44,7 @@ void Client::setIsConnected(bool value) {
     this->_isConnected = value;
 }
 
-std::string Client::getNickName(void) const {
+const std::string& Client::getNickName(void) {
     return this->_NICK;
 }
 void Client::setNICK(std::string value) {
