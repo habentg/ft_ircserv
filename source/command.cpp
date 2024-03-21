@@ -182,8 +182,6 @@ void Command::privmsg(Client *senderClient, Server *serverInstance, std::string 
 */
 void    Command::join(Client *client, Server *serverInstance, std::string chanName) {
     if (chanName[0] != '#' || chanName.find(7) != std::string::npos) {
-        // incase of a channel name having a space, we can reconstruct the "name" but I am lazy now!
-        //{:adrift.sg.quakenet.org 403 tesfa #fhfjk :No such channel}
         serverInstance->sendMsgToClient(client->getFd(), ERR_BADCHANMASK(serverInstance->getHostname(), client->getNickName()));
         return ;
     }
@@ -193,8 +191,11 @@ void    Command::join(Client *client, Server *serverInstance, std::string chanNa
         serverInstance->createChannel(chanName, client, this);
         return ;
     }
+    if (chann->getAllMembersNick().find(client->getNickName()) != chann->getAllMembersNick().end()) { // user is already in there
+        return ;
+    }
     // we check if channel is an invite only:
-    if (chann->isModeOn('i') && (chann->getAllInvitees().find(client->getNickName()) != chann->getAllInvitees().end())) {
+    if (chann->isModeOn('i') && (chann->getAllInvitees().find(client->getNickName()) == chann->getAllInvitees().end())) {
         // check if the user has an invitation
         std::set<std::string>::iterator it = chann->getAllInvitees().find(client->getNickName());
         if (it == chann->getAllInvitees().end()) {
@@ -228,9 +229,6 @@ void    Command::join(Client *client, Server *serverInstance, std::string chanNa
             return ;
         }
         // at this point he got the correct key and channel user limmit hasnt been reached yet
-    }
-    if (chann->getAllMembersNick().find(client->getNickName()) != chann->getAllMembersNick().end()) {
-        return ;
     }
     chann->getAllMembersNick().insert(client->getNickName());
     chann->insertToMemberFdMap(client->getNickName(), client->getFd());
@@ -385,9 +383,7 @@ void    Command::invite(Client *client, Server *serverInstance) {
         return ;
     }
     // adding invitee's nick name in our record of invitee's (needed to be deleted after one time use)
-    std::cout << "invited size: " << chan->getAllInvitees().size() << std::endl;
     chan->getAllInvitees().insert(invitee->getNickName());
-    std::cout << "invited size: " << chan->getAllInvitees().size() << std::endl;
     serverInstance->sendMsgToClient(invitee->getFd(), RPL_YouIsInvited(client->getNickName(), client->getNickName(), client->getIpAddr(), chan->getName(), invitee->getNickName()));
     /* >> :afk!~hab@5.195.225.158 INVITE cfk #42chanasfaf */
 }
