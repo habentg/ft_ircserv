@@ -79,7 +79,7 @@ void printVector(std::vector<std::string> vec) {
 
 std::string humanReadableDateTime(void) {
      // Get current time
-    std::time_t currentTime = std::time(nullptr);
+    std::time_t currentTime = std::time(NULL);
     
     // Convert current time to std::tm structure
     std::tm* timeInfo = std::localtime(&currentTime);

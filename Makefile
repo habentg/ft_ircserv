@@ -12,11 +12,16 @@
 
 # Executable name:
 NAME		= ircserv
+SHELL := /bin/bash
+
+pwd = $(shell pwd):/home/vscode/src
 
 # Compiler, flags and RM command:
 CXX 		= c++
-CXXFLAGS	= -Wall -Werror -Wextra -std=c++98 -g --fsanitize=address
+CXXFLAGS	= -Wall -Werror -Wextra -std=c++98 -g
 RM 			= rm -rf
+leak = valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes
+
 
 # Source files:
 SRC = $(addprefix source/, server.cpp utils.cpp channel.cpp client.cpp main.cpp command.cpp server_connnection_registration.cpp channel_modes.cpp)
@@ -31,7 +36,7 @@ OBJ_FILES = $(patsubst %.cpp, $(OBJ)/%.o, $(notdir $(SRC)))
 $(OBJ)/%.o: source/%.cpp
 	@mkdir -p $(dir $@)
 	@echo "	~ Making object file [$(notdir $@)] from source file {$(notdir $<)} ...\n"
-	@$(CXX) $(FLAGS) -c $< -o $@
+	@$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Rule for generating the executable:
 all: $(NAME)
@@ -39,8 +44,14 @@ all: $(NAME)
 # Rule for generating the executable:
 $(NAME): $(OBJ_FILES)
 	@echo "Compiling and Linking Ft_IRCserv"
-	@$(CXX) $(FLAGS) $(OBJ_FILES) -o $@
+	@$(CXX) $(CXXFLAGS) $(OBJ_FILES) -o $@
 	@echo "Compilation successfull. Enjoy"
+
+server: $(NAME)
+	$(leak) ./$(NAME) 6667 passwd
+
+docker:
+	docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --security-opt apparmor=unconfined  --network host --name 42-valgrind$(shell date '+%H%M%S') --rm -v $(pwd) valgrind "/bin/zsh"
 
 # Rule for cleaning object files:
 clean:
@@ -56,7 +67,7 @@ fclean: clean
 re: fclean all
 
 bot:
-	cd bot/ && ${CXX} ${FLAGS} bot.cpp main.cpp utils.cpp -o ../bigbrother && cd - 
+	cd bot/ && ${CXX} ${CXXFLAGS} bot.cpp main.cpp utils.cpp -o ../bigbrother && cd - 
 
-# Phony targets:
+# Phony NAMEs:
 .PHONY: re fclean all clean bot

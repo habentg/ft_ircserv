@@ -53,7 +53,7 @@ class Server {
         void                        sendMsgToClient(int clientFd, std::string msg);
         void                        doStuff(Client* client, Command *command);
         void                        removeClient(Client *senderClient, std::string quitMsg);
-        void                        createChannel(std::string chanName, Client *creator, Command *command);
+        void                        createChannel(std::string chanName, Client *creator);
         Channel                     *getChannel(std::string chanName);
         void                        deleteAChannel(Channel *chan);
         void                        removeClientFromChan(Client *victim, Channel *chan);

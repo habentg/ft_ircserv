@@ -15,7 +15,6 @@
 Command::Command(std::string rcved_cmd) {
     this->raw_cmd = rcved_cmd;
     std::vector<std::string> cmd_arr = split(rcved_cmd, ' ');
-    std::vector<std::string>::iterator iter = cmd_arr.begin();
     this->cmd = cmd_arr[0];
     this->params.insert(this->params.end(), cmd_arr.begin() + 1, cmd_arr.end());
 }
@@ -64,7 +63,7 @@ void    Command::password(Client *client, Server* serverInstance) {
     Servers MAY have additional implementation-specific nickname restrictions and SHOULD avoid the use of nicknames 
         which are ambiguous with commands or command parameters where this could lead to confusion or error.
 */
-size_t validNickName(std::vector<std::string> nick_params, int clientFd, Server* serverInstance, std::string cmdName) {
+size_t validNickName(std::vector<std::string> nick_params, int clientFd, Server* serverInstance) {
     std::string nick = nick_params[0];
     if (std::isdigit(nick[0]) || nick[0] == ':' || nick[0] == '#') {
         serverInstance->sendMsgToClient(clientFd, ERR_ERRONEUSNICKNAME(serverInstance->getHostname()));
@@ -90,7 +89,7 @@ size_t validNickName(std::vector<std::string> nick_params, int clientFd, Server*
     Servers MUST advertise the casemapping they use in the RPL_ISUPPORT numeric that’s sent when connection registration has completed.
 */
 bool    Command::nickname(Client *client, Server* serverInstance) {
-    size_t invalidCharIndex = validNickName(this->params, client->getFd(), serverInstance, this->cmd); // double check again
+    size_t invalidCharIndex = validNickName(this->params, client->getFd(), serverInstance); // double check again
     if (invalidCharIndex == 0) // return only if the is not a single valid character
         return false;
     std::string nick_name = this->params[0].substr(0, invalidCharIndex); 
@@ -188,7 +187,7 @@ void    Command::join(Client *client, Server *serverInstance, std::string chanNa
     Channel *chann = serverInstance->getChannel(chanName);
     if (chann == NULL)
     {
-        serverInstance->createChannel(chanName, client, this);
+        serverInstance->createChannel(chanName, client);
         return ;
     }
     if (chann->getAllMembersNick().find(client->getNickName()) != chann->getAllMembersNick().end()) { // user is already in there
