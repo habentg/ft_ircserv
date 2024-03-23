@@ -21,7 +21,6 @@ Server::Server(unsigned short int  portNumber, std::string password) : _serverPo
     this->_serverSocketFd = 0;
     this->_serverPassword = password;
     this->_serverHostName = "";
-    std::cout << "Server started!" << std::endl;
 }
 
 Server *Server::createServerInstance(unsigned short int portNumber, std::string password) {
@@ -178,6 +177,9 @@ int Server::getClientFd(std::string nick) const {
 /* ------------------------------------------------------------------------------------------ */
 
 void Server::sendMsgToClient(int clientFd, std::string msg) {
+    Client *cl = this->getClient(clientFd);
+    if (cl == NULL || !cl->IsClientConnected())
+        return ;
     int bytes_sent = send(clientFd, msg.c_str(), msg.length(), 0);
     if (bytes_sent == -1)
         throw std::runtime_error("Error: sending message to client");
@@ -236,8 +238,8 @@ void    Server::createChannel(std::string chanName, Client *creator) {
     newChannel->getAllMembersNick().insert((creator->getNickName()));
     creator->getChannelsJoined().insert(newChannel->getName());
     std::cout << "CHANNEL : {" << newChannel->getName() << "} created!\n";
-   this->sendMsgToClient(creator->getFd(), RPL_JOIN(creator->getNickName(), creator->getUserName(), creator->getIpAddr(), chanName));
-   this->namesCmd(creator, chanName); // send names
+    this->sendMsgToClient(creator->getFd(), RPL_JOIN(creator->getNickName(), creator->getUserName(), creator->getIpAddr(), chanName));
+    this->namesCmd(creator, chanName); // send names
 }
 
 Channel   *Server::getChannel(std::string chanName) {
@@ -288,7 +290,6 @@ void Server::doStuff(Client* client, Command *command) {
         this->sendMsgToClient(client->getFd(), PONG(this->getHostname()));
         return ;
     }
-    std::cout << "FUll-cmd :<" << command->raw_cmd << ">\n";
     if (command->cmd == "MODE") // no need to split
         command->mode(client, this);
     else if (command->cmd == "INVITE")
@@ -306,7 +307,6 @@ void Server::doStuff(Client* client, Command *command) {
             else if (command->cmd == "NAMES")
                 this->namesCmd(client, *it);
             else if (command->cmd == "JOIN") {
-                std::cout << " ----- >wtf I am doing here!\n";
                 command->join(client, this, *it);
             }
             else if (command->cmd == "PART")
@@ -341,7 +341,8 @@ void Server::doStuff(Client* client, Command *command) {
             return;
         _nick_fd_map.erase(temp_nick);
         _nick_fd_map[client->getNickName()] = client->getFd();
-        sendMsgToClient(client->getFd(), userHostMask(temp_nick,  client->getUserName(), this->getHostname()) + " NICK :" + client->getNickName() + "\r\n");
+        if (client->getChannelsJoined().empty())
+            sendMsgToClient(client->getFd(), userHostMask(temp_nick,  client->getUserName(), this->getHostname()) + " NICK :" + client->getNickName() + "\r\n");
         std::set<std::string>& channels = client->getChannelsJoined();
         std::set<std::string>::iterator it = channels.begin();
         for(; it != channels.end(); ++it) {
@@ -360,8 +361,15 @@ void Server::doStuff(Client* client, Command *command) {
             std::string tosend = userHostMask(temp_nick,  client->getUserName(), this->getHostname()) + " NICK " + client->getNickName() + "\r\n";
             this->forwardMsgToChan(chan, client->getNickName(), tosend, true);
         }
+        for (std::map<std::string, Channel *>::iterator it = this->_channels.begin(); it != _channels.end(); ++it) {
+            Channel *chan = it->second;
+            if (chan->getAllInvitees().find(temp_nick) != chan->getAllInvitees().end()) {
+                chan->getAllInvitees().erase(temp_nick);
+                chan->getAllInvitees().insert(client->getNickName());
+            }
+        }
     }
-}
+    }
 
 void Server::executeMsg(Client *client) {
     std::vector<std::string> arr_of_cmds = split(client->getRecivedBuffer(), '\0');

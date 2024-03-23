@@ -55,6 +55,7 @@ class Client {
         void            setRealName(std::string value);
         
         std::string     getIpAddr(void) const;
+        uint32_t        getClientPortNumber(void) const;
         
         std::set<std::string>& getChannelsJoined(void);
         std::string&           getRecivedBuffer();

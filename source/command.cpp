@@ -33,7 +33,6 @@ void    Command::password(Client *client, Server* serverInstance) {
     }
     if (this->params[0] == serverInstance->getPassword()) {
         client->setIsAuthenticated(true);
-        std::cout << "Client: [" << client->getFd() << "] has been authenticated\n";
     }
     else {
         serverInstance->sendMsgToClient(client->getFd(), ERR_PASSWDMISMATCH(serverInstance->getHostname()));
@@ -161,7 +160,6 @@ void Command::privmsg(Client *senderClient, Server *serverInstance, std::string 
         serverInstance->sendMsgToClient(senderClient->getFd(), ERR_NOSUCHNICK(serverInstance->getHostname(), senderClient->getNickName(), rcver));
         return ;
     }
-    std::cout << "sending privmsg ..... " << std::endl;
     serverInstance->sendMsgToClient(recieverFd, PRIVMSG_RPLY(senderClient->getNickName(), senderClient->getUserName(), senderClient->getIpAddr(), serverInstance->getClient(recieverFd)->getNickName(), msgPriv));
 }
 
@@ -192,34 +190,31 @@ void    Command::join(Client *client, Server *serverInstance, std::string chanNa
     if (chann->getAllMembersNick().find(client->getNickName()) != chann->getAllMembersNick().end()) { // user is already in there
         return ;
     }
+    if (chann->isModeOn('l')) {
+        if ((chann->getNumOfChanMembers() == chann->getUsersLimit())) {
+            serverInstance->sendMsgToClient(client->getFd(), ERR_CHANNELISFULL(serverInstance->getHostname(), client->getNickName(), chann->getName()));
+            return ;
+        }
+    }
     // we check if channel is an invite only:
-    if (chann->isModeOn('i') && (chann->getAllInvitees().find(client->getNickName()) == chann->getAllInvitees().end())) {
+    if (chann->isModeOn('i')) {
         // check if the user has an invitation
         std::set<std::string>::iterator it = chann->getAllInvitees().find(client->getNickName());
         if (it == chann->getAllInvitees().end()) {
             serverInstance->sendMsgToClient(client->getFd(), ERR_INVITEONLYCHAN(serverInstance->getHostname(), client->getNickName(), chann->getName()));
             return ;
         }
-        if (chann->isModeOn('l') && chann->getNumOfChanMembers() == chann->getUsersLimit()) {
-            serverInstance->sendMsgToClient(client->getFd(), ERR_CHANNELISFULL(serverInstance->getHostname(), client->getNickName(), chann->getName()));
-            return ;
-        }
-        // if not return;
-        // if yes (one time use of invite -- delema)
     }
     /* before joining him to channel -- we have to check if he has a correct key and if the user limit of the channel is reached (both of them if nessesaary) */
-    else if ((chann->isModeOn('k') || chann->isModeOn('l')))
+    else if (chann->isModeOn('k'))
     {
-        if (chann->isModeOn('l') && chann->getNumOfChanMembers() == chann->getUsersLimit()) {
-            serverInstance->sendMsgToClient(client->getFd(), ERR_CHANNELISFULL(serverInstance->getHostname(), client->getNickName(), chann->getName()));
-            return ;
-        }
         /* JOIN #42 */
         std::set<std::string>::iterator it = chann->getAllInvitees().find(client->getNickName());
         if (this->params.size() == 1 && it == chann->getAllInvitees().end()) {
             serverInstance->sendMsgToClient(client->getFd(), ERR_BADCHANNELKEY(serverInstance->getHostname(), client->getNickName(), chann->getName()));
             return ;
         }
+        /* should have a key to join */
         else if (it == chann->getAllInvitees().end() && (this->params.size() > 1 && this->params[1] != chann->getChanKey())){// he came without key or there is key mismatch
             serverInstance->sendMsgToClient(client->getFd(), ERR_BADCHANNELKEY(serverInstance->getHostname(), client->getNickName(), chann->getName()));
             return ;
@@ -349,7 +344,6 @@ void    Server::namesCmd(Client *client, std::string chanName) {
 void    Command::invite(Client *client, Server *serverInstance) {
     // error checking;
     if (this->params.size() < 2) {
-        std::cout << "need more parms of INVITE\n";
         return ;
     }
     // checking channel availability and the channel is an invite-only
@@ -380,6 +374,8 @@ void    Command::invite(Client *client, Server *serverInstance) {
     }
     // adding invitee's nick name in our record of invitee's (needed to be deleted after one time use)
     chan->getAllInvitees().insert(invitee->getNickName());
+    std::string inviting = ":"+serverInstance->getHostname() + " 341 "+client->getNickName()+" "+invitee->getNickName()+" "+chan->getName()+"\r\n";
+    serverInstance->sendMsgToClient(client->getFd(), inviting);
     serverInstance->sendMsgToClient(invitee->getFd(), RPL_YouIsInvited(client->getNickName(), client->getNickName(), client->getIpAddr(), chan->getName(), invitee->getNickName()));
     /* >> :afk!~hab@5.195.225.158 INVITE cfk #42chanasfaf */
 }

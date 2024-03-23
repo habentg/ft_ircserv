@@ -80,9 +80,9 @@
 #define ERR_REGISTER_FIRST(hostname)                                std::string(":"+hostname+" 451 * :Register first\r\n")
 #define ERR_NOPRIVILEGES(hostname, nickname)                        std::string(":"+hostname+" 481 "+nickname+" :Permission to KILL a user DENAID, You aint an Server-OP!\r\n")
 /* >> :hostsailor.ro.quakenet.org 471 a__ #habexirc :Cannot join channel, Channel is full (+l) */
-#define ERR_CHANNELISFULL(hostname, nickname, chanName)             std::string(":"+hostname+" 471 "+nickname+" "+chanName+" :channel is FULL (+i)\r\n")
+#define ERR_CHANNELISFULL(hostname, nickname, chanName)             std::string(":"+hostname+" 471 "+nickname+" "+chanName+" :channel is FULL \r\n")
 /* >> :hostsailor.ro.quakenet.org 475 gaim #new42chan :Cannot join channel, you need the correct key (+k) */
-#define ERR_BADCHANNELKEY(hostname, nickname, chanName)             std::string(":"+hostname+" 475 "+nickname+" "+chanName+" :You need a channel key to join (+k)\r\n")
+#define ERR_BADCHANNELKEY(hostname, nickname, chanName)             std::string(":"+hostname+" 475 "+nickname+" "+chanName+" :bad channel key\r\n")
 #define ERR_BADCHANMASK(hostname, nickname)                         std::string(":"+hostname+" 476 "+nickname+" :invalid channel name\r\n")
 #define ERR_CHANOPRIVSNEEDED(hostname, nickname, chanName)                    std::string(":"+hostname+" 482 "+nickname+" "+chanName+" :you are not channel OP\r\n")
 #define ERR_NOSUCHCHANNEL(hostname, nickname, chanName)                       std::string(":"+hostname+" 403 "+nickname+" "+chanName+" :no such channel\r\n")

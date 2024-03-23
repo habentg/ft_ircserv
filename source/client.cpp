@@ -73,6 +73,10 @@ std::string Client::getIpAddr(void) const {
     return std::string(this->_ipaddr);
 }
 
+uint32_t  Client::getClientPortNumber(void) const {
+    return (this->_port);
+}
+
 unsigned int Client::getWrongPassCount(void) const {
     return this->_wrongPassCount;
 }

@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 09:45:02 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/03/23 11:17:55 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/23 17:04:03 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -173,15 +173,20 @@ bool    Command::mode_l(Channel *chan, Client *client, Server* serverInstance) {
     // setting +l/l
     if (this->params.size() != 3)
         return (serverInstance->sendMsgToClient(client->getFd(), ERR_NEEDMOREPARAMS(serverInstance->getHostname(), this->cmd)), false);
-    int num = atoi(this->params[2].c_str()); // we will have to check if it contains anythiing thats now a digit and return an error
-    if (num <= 0 || num > INT_MAX) // if userlimit entered is 0, more than int max or some invalid value, we just ignore
+    if (this->params[2].find_first_not_of("1234567890") != std::string::npos)
         return (false);
+    char *endPtr;
+    double limit = std::strtod(this->params[2].c_str(), &endPtr);
+    if (limit <= 0 || limit > INT_MAX) // if userlimit entered is 0, more than int max or some invalid value, we just ignore
+        return (false);
+    if (chan->isModeOn('l') && chan->getUsersLimit() == static_cast<unsigned int>(limit))
+        return false;
     // check if the num is less than zero before setting it!
     chan->getChannelModes().insert('l'); // adding 'l' to indicate that we have the userlimit set for the channel
     std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), std::string("+l " + this->params[2]));
     serverInstance->forwardMsgToChan(chan, client->getNickName(), modeRply, true);
     /* we will twik the joining a channel feature to check for user limit before a client joins */
-    return (chan->setUsersLimit(num), true);
+    return (chan->setUsersLimit(static_cast<int>(limit)), true);
 }
 
 /* the reak irc is behaving in a wierd way when unsetting the key multiple times when it wasnt set */
@@ -190,7 +195,7 @@ bool    Command::mode_k(Channel *chan, Client *client, Server* serverInstance) {
         return (serverInstance->sendMsgToClient(client->getFd(), ERR_CHANOPRIVSNEEDED(serverInstance->getHostname(), client->getNickName(), chan->getName())), false);
     if (this->params[1] == "-k") {
         if (chan->isModeOn('k') == false) { 
-            return (std::cout << "the key wasnt set!\n", false);
+            return (false);
         }
         chan->getChannelModes().erase('k');
         std::string modeRply = RPL_MODES(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), std::string("-k " + chan->getChanKey()));

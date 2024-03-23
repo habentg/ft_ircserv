@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/28 12:54:51 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/03/19 05:39:51 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/23 17:10:13 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,8 +38,7 @@ void Server::acceptNewConnection(void) {
     Client *client = new Client(newClientFd, clientInfo);
     
     this->_clients.insert(std::pair<int, Client *>(newClientFd, client));
-    std::cout << "New Client accepted: " << inet_ntoa(((struct sockaddr_in *)clientInfo)->sin_addr)
-        << ":" << ntohs(((struct sockaddr_in *)clientInfo)->sin_port) << " at fd: " << newClientFd <<std::endl;
+    std::cout << "New Client accepted: " << client->getIpAddr() << ":" << client->getClientPortNumber() <<std::endl;
 }
 
 /* ------------------------------------------------------------------------------------------ */
@@ -101,7 +100,7 @@ void Server::userAuthenticationAndWelcome(Client* client, Command *command) {
             file.close();
         }
         this->sendMsgToClient(client->getFd(), RPL_ENDOFMOTD(this->getHostname(), client->getNickName()));
-        std::cout << "Client: " << client->getFd() << " is Connected!!\n";
+        std::cout << "Client: " << client->getIpAddr() << ":" << client->getClientPortNumber() << " is Connected!!\n";
     }
 }
 

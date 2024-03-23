@@ -12,30 +12,31 @@
 
 # Executable name:
 NAME		= ircserv
-SHELL := /bin/bash
+BOT         = bigbrother
 
 pwd = $(shell pwd):/home/vscode/src
 
 # Compiler, flags and RM command:
 CXX 		= c++
-CXXFLAGS	= -Wall -Werror -Wextra -std=c++98 -g3
+CXXFLAGS	= -Wall -Werror -Wextra -std=c++98
 RM 			= rm -rf
-leak = valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes
 
 
 # Source files:
 SRC = $(addprefix source/, server.cpp utils.cpp channel.cpp client.cpp main.cpp command.cpp server_connnection_registration.cpp channel_modes.cpp)
+BONUS_SRC = bot/bot.cpp bot/main.cpp bot/utils.cpp
 
 # Object files directory:
 OBJ = obj
 
 # Object files:
 OBJ_FILES = $(patsubst %.cpp, $(OBJ)/%.o, $(notdir $(SRC)))
+BONUS_OBJS = ${BONUS_SRC:.cpp=.o}
 
 # Rule for generating object files:
 $(OBJ)/%.o: source/%.cpp
 	@mkdir -p $(dir $@)
-	@echo "	~ Making object file [$(notdir $@)] from source file {$(notdir $<)} ...\n"
+	@echo "	~ Making object file [$(notdir $@)] from source file {$(notdir $<)} ..."
 	@$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Rule for generating the executable:
@@ -43,31 +44,27 @@ all: $(NAME)
 
 # Rule for generating the executable:
 $(NAME): $(OBJ_FILES)
-	@echo "Compiling and Linking Ft_IRCserv"
+	@echo "Creating ircserv...."
 	@$(CXX) $(CXXFLAGS) $(OBJ_FILES) -o $@
-	@echo "Compilation successfull. Enjoy"
+	@echo "successfully created! Enjoy my friend"
 
-server: $(NAME)
-	$(leak) ./$(NAME) 6667 passwd
-
-docker:
-	docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --security-opt apparmor=unconfined  --network host --name 42-valgrind$(shell date '+%H%M%S') --rm -v $(pwd) valgrind "/bin/zsh"
+# Rule for generating the bonus executable:
+$(BOT) : $(BONUS_OBJS)
+	$(CXX) $(CXXFLAGS) $(BONUS_OBJS) -o $(BOT)
 
 # Rule for cleaning object files:
 clean:
-	@echo "Removing Objects"
 	$(RM) $(OBJ)
+	$(RM) $(BONUS_OBJS)
 
 # Rule for cleaning object files, archives and executable:
 fclean: clean
-	@echo "Removing Executable"
-	$(RM) $(NAME) bigbrother
+	$(RM) $(NAME) $(BOT)
 
 # Rule for re-making the executable:
 re: fclean all
 
-bot:
-	cd bot/ && ${CXX} ${CXXFLAGS} bot.cpp main.cpp utils.cpp -o ../bigbrother && cd - 
+bonus: $(BOT)
 
 # Phony NAMEs:
-.PHONY: re fclean all clean bot
+.PHONY: re fclean all clean bonus
