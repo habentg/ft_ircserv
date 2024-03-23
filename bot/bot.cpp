@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   bot.cpp                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
+/*   By: mkiflema <mkiflema@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/07 13:50:10 by tpetros           #+#    #+#             */
-/*   Updated: 2024/03/19 07:17:22 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/23 10:58:41 by mkiflema         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,7 +76,7 @@ bool Bot::isOffensiveWord(const std::string& word) {
     return false;
 }
 
-const bool Bot::checkOffensiveWords(const std::string& message)
+bool Bot::checkOffensiveWords(const std::string& message)
 {
 	size_t pos = message.find_last_of(":");
 	std::string the_message;
@@ -84,7 +84,7 @@ const bool Bot::checkOffensiveWords(const std::string& message)
 		the_message = message.substr(pos + 1, message.length());
 	const std::vector<std::string> temp = split(the_message, ' ');
 
-    for (int i = 0; i < temp.size(); i++)
+    for (size_t i = 0; i < temp.size(); i++)
 	{
         if (isOffensiveWord(std::string(temp[i])))
             return true;

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   bot.hpp                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tpetros <tpetros@student.42abudhabi.ae>    +#+  +:+       +#+        */
+/*   By: mkiflema <mkiflema@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/07 13:49:54 by tpetros           #+#    #+#             */
-/*   Updated: 2024/03/07 13:49:56 by tpetros          ###   ########.fr       */
+/*   Updated: 2024/03/23 10:57:35 by mkiflema         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,7 +45,7 @@ class Bot
 		void 			establishConnection( void );
 		void 			joinChannel( const std::string& channel );
 		bool 			isOffensiveWord( const std::string& word );
-		const bool 		checkOffensiveWords( const std::string& message );
+		bool 		checkOffensiveWords( const std::string& message );
 		void 			monitor( std::string channel );
 		void 			kickUser( const std::string& user, std::string channel );
 		void 			sendMsg( const std::string& message );
