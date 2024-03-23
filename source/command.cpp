@@ -71,8 +71,7 @@ size_t validNickName(std::vector<std::string> nick_params, int clientFd, Server*
     }
     size_t  valid_index = 0;
     /* Use find first instead of all the '||'s */
-    std::string check = std::string(",@*$?!.");
-    if ((valid_index = nick.find_first_of(check)) != std::string::npos) {
+    if ((valid_index = nick.find_first_of(",@*$?!.")) != std::string::npos) {
         if (valid_index == 0) {
             serverInstance->sendMsgToClient(clientFd, ERR_ERRONEUSNICKNAME(serverInstance->getHostname()));
             return 0;
@@ -218,12 +217,10 @@ void    Command::join(Client *client, Server *serverInstance, std::string chanNa
         /* JOIN #42 */
         std::set<std::string>::iterator it = chann->getAllInvitees().find(client->getNickName());
         if (this->params.size() == 1 && it == chann->getAllInvitees().end()) {
-            std::cout << " is me here\n";
             serverInstance->sendMsgToClient(client->getFd(), ERR_BADCHANNELKEY(serverInstance->getHostname(), client->getNickName(), chann->getName()));
             return ;
         }
-        else if (it == chann->getAllInvitees().end() && this->params[1] != chann->getChanKey()){// he came without key or there is key mismatch
-            std::cout << " is me here - 2\n";
+        else if (it == chann->getAllInvitees().end() && (this->params.size() > 1 && this->params[1] != chann->getChanKey())){// he came without key or there is key mismatch
             serverInstance->sendMsgToClient(client->getFd(), ERR_BADCHANNELKEY(serverInstance->getHostname(), client->getNickName(), chann->getName()));
             return ;
         }
@@ -420,7 +417,7 @@ void    Command::unsetTopic(Client *client, Server *serverInstance) {
             serverInstance->sendMsgToClient(client->getFd(), ERR_YouIsNotInCHANNEL(serverInstance->getHostname(), client->getNickName(), chan->getName()));
             return ;
         }
-        chan->getTopic().erase();
+        chan->getTopic().clear();
         chan->getHasTopic() = false;
         serverInstance->forwardMsgToChan(chan, client->getNickName(), 
             TOPIC_CHANGE(client->getNickName(), client->getUserName(), client->getIpAddr(), chan->getName(), chan->getTopic()), true);

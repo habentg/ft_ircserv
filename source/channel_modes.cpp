@@ -6,7 +6,7 @@
 /*   By: hatesfam <hatesfam@student.42abudhabi.a    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 09:45:02 by hatesfam          #+#    #+#             */
-/*   Updated: 2024/03/20 10:51:45 by hatesfam         ###   ########.fr       */
+/*   Updated: 2024/03/23 11:17:55 by hatesfam         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -96,6 +96,8 @@ bool Command::mode_channel(Client *client, Channel *chan, Server* serverInstance
 bool    Command::mode_o(Channel *chan, Client *client, Server* serverInstance) {
     if (chan->isClientaMember(client->getNickName())[0] != '@')
         return (serverInstance->sendMsgToClient(client->getFd(), ERR_CHANOPRIVSNEEDED(serverInstance->getHostname(), client->getNickName(), chan->getName())), false);
+    if (this->params.size() != 3)
+        return (serverInstance->sendMsgToClient(client->getFd(), ERR_NEEDMOREPARAMS(serverInstance->getHostname(), this->cmd)), false);
     std::string groom = chan->isClientaMember(this->params[2]);
     if (groom == "") // if he is not in channel
         return (serverInstance->sendMsgToClient(client->getFd(), ERR_NOSUCHNICK(serverInstance->getHostname(), client->getNickName(), this->params[2])), true);

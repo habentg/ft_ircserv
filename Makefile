@@ -18,7 +18,7 @@ pwd = $(shell pwd):/home/vscode/src
 
 # Compiler, flags and RM command:
 CXX 		= c++
-CXXFLAGS	= -Wall -Werror -Wextra -std=c++98 -g
+CXXFLAGS	= -Wall -Werror -Wextra -std=c++98 -g3
 RM 			= rm -rf
 leak = valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes
 

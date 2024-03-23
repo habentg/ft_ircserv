@@ -227,13 +227,15 @@ void Server::removeClient(Client *cl, std::string quitMsg) {
  */
 
 void    Server::createChannel(std::string chanName, Client *creator) {
-    Channel* newChan = new Channel(chanName);
-    this->_channels.insert(std::make_pair(chanName, newChan));
-    newChan->getAllChanOps().insert(("@" + creator->getNickName()));
-    newChan->insertToMemberFdMap((creator->getNickName()), creator->getFd());
-    newChan->getAllMembersNick().insert((creator->getNickName()));
-    creator->getChannelsJoined().insert(newChan->getName());
-    std::cout << "CHANNEL : {" << newChan->getName() << "} created!\n";
+    Channel* newChannel = new Channel(chanName);
+    if (newChannel == NULL)
+        return ;
+    this->_channels.insert(std::make_pair(chanName, newChannel));
+    newChannel->getAllChanOps().insert(("@" + creator->getNickName()));
+    newChannel->insertToMemberFdMap((creator->getNickName()), creator->getFd());
+    newChannel->getAllMembersNick().insert((creator->getNickName()));
+    creator->getChannelsJoined().insert(newChannel->getName());
+    std::cout << "CHANNEL : {" << newChannel->getName() << "} created!\n";
    this->sendMsgToClient(creator->getFd(), RPL_JOIN(creator->getNickName(), creator->getUserName(), creator->getIpAddr(), chanName));
    this->namesCmd(creator, chanName); // send names
 }
@@ -358,59 +360,19 @@ void Server::doStuff(Client* client, Command *command) {
             std::string tosend = userHostMask(temp_nick,  client->getUserName(), this->getHostname()) + " NICK " + client->getNickName() + "\r\n";
             this->forwardMsgToChan(chan, client->getNickName(), tosend, true);
         }
-}
-
-    // else if (command->cmd == "NICK" && client->getIsAuthenticated()) {
-    //     std::string temp_nick = client->getNickName();
-    //     if (!command->nickname(client, this))
-    //         return ;
-    //     // this->sendMsgToClient(client->getFd(), RPL_WELCOME(this->getHostname(), client->getUserName(), client->getNickName()));
-
-    //     _nick_fd_map.erase(temp_nick);
-    //     _nick_fd_map[client->getNickName()] = client->getFd();
-    //     sendMsgToClient(client->getFd(), userHostMask(temp_nick,  client->getUserName(), this->getHostname()) + " NICK :" + client->getNickName() + "\r\n");
-    //     std::set<std::string>& channels = client->getChannelsJoined();
-    //     std::set<std::string>::iterator channel_name = channels.begin();
-    //     for (; channel_name != channels.end(); ++channel_name) {
-    //         Channel* channel = this->getChannel(*channel_name);
-    //         if (!channel)
-    //             continue ;
-    //         std::map<std::string, int>& member_fd_map = channel->get_member_fd_map();
-    //         std::set<std::string>& all_chan_mem = channel->getAllMembersNick();
-    //         std::set<std::string>::iterator it_n = all_chan_mem.begin();
-    //         for (; it_n != all_chan_mem.end(); ++it_n) {
-    //             if ((*it_n) == temp_nick)
-    //             {
-    //                 // std::cout << "something something: " << *it_n << std::endl;
-    //                 all_chan_mem.erase(*it_n);
-    //                 all_chan_mem.insert(client->getNickName());
-    //             }
-    //         }
-    //         std::set<std::string>& chanops = channel->getAllChanOps();
-    //         if (chanops.find("@" + temp_nick) != chanops.end())
-    //         {
-    //             chanops.erase("@" + temp_nick);
-    //             chanops.insert("@" + client->getNickName());
-    //         }
-    //         member_fd_map.erase(temp_nick);
-    //         member_fd_map[client->getNickName()] = client->getFd();
-    //         std::string tosend = userHostMask(temp_nick,  client->getUserName(), this->getHostname()) + " NICK " + client->getNickName() + "\r\n";
-    //         this->forwardMsgToChan(channel, client->getNickName(), tosend, true);
-    //     }
-    // }
+    }
 }
 
 void Server::executeMsg(Client *client) {
     std::vector<std::string> arr_of_cmds = split(client->getRecivedBuffer(), '\0');
-    client->getRecivedBuffer().erase(); // empty the buffer - coz its splited and changed to CMD;
+    client->getRecivedBuffer().clear(); // empty the buffer - coz its splited and changed to CMD;
     for (std::vector<std::string>::iterator it = arr_of_cmds.begin(); it != arr_of_cmds.end(); ++it) {
         Command *command = new Command((*it));
-        if (command->params.empty() && command->cmd != "USER") {
-            this->sendMsgToClient(client->getFd(), ERR_NEEDMOREPARAMS(this->getHostname(), command->cmd));
+        if (command == NULL)
             return ;
-        }
-        // we register the client first, (basicly assign nickname, username and other identifiers to the new connection so it can interact with other users)
-        if (client->IsClientConnected() == false)
+        if (command->params.empty() && command->cmd != "USER")
+            this->sendMsgToClient(client->getFd(), ERR_NEEDMOREPARAMS(this->getHostname(), command->cmd));
+        else if (client->IsClientConnected() == false) 
             this->registerClient(client, command);
         else
             this->doStuff(client, command);
