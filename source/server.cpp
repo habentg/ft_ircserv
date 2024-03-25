@@ -178,7 +178,7 @@ int Server::getClientFd(std::string nick) const {
 
 void Server::sendMsgToClient(int clientFd, std::string msg) {
     Client *cl = this->getClient(clientFd);
-    if (cl == NULL || !cl->IsClientConnected())
+    if (cl == NULL)
         return ;
     int bytes_sent = send(clientFd, msg.c_str(), msg.length(), 0);
     if (bytes_sent == -1)
